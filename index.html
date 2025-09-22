@@ -21,6 +21,7 @@
   .small { font-size:12px; color:var(--muted); }
   iframe#gmaps { width:100%; height:420px; border:1px solid var(--border); border-radius:12px; }
   .preview { white-space:pre-line; border:1px dashed var(--border); border-radius:10px; padding:8px 10px; margin-top:8px; background:#fafafa; }
+  .answer { background:#f8fbff; border:1px solid #dfeaff; color:#173c7a; border-radius:10px; padding:10px 12px; margin-top:10px; }
 </style>
 </head>
 <body>
@@ -36,6 +37,7 @@
     <button id="go">Buscar instaladores</button>
   </div>
   <div id="formatted" class="preview small"></div>
+  <div id="answer" class="answer small" style="display:none;"></div>
 
   <div class="grid" style="margin-top:16px;">
     <div>
@@ -60,7 +62,7 @@
   </div>
 
   <div class="small" style="margin-top:8px;">
-    Fuente: tabla embebida. ¿Lo quieres con Google Sheets + Maps JS (marcador preciso)? Te paso esa variante también.
+    Fuente: tabla embebida. ¿Lo quieres con Google Sheets + Maps JS (marcador preciso)? Puedo pasarte esa variante.
   </div>
 </div>
 
@@ -113,7 +115,6 @@ function titleCase(str){
 
 function normalizeStreet(raw){
   let s = String(raw||"").trim().replace(/\s+/g, " ");
-  // dividir por coma o salto de línea por si el usuario pone CP/localidad
   const firstLine = s.split(/[\n,]/)[0].trim();
   let out = firstLine;
   for (const rule of STREET_ABBR){
@@ -122,10 +123,7 @@ function normalizeStreet(raw){
       break;
     }
   }
-  // Capitaliza cada palabra excepto números
-  out = out.split(" ").map(tok=>{
-    return /^\d/.test(tok) ? tok : titleCase(tok);
-  }).join(" ");
+  out = out.split(" ").map(tok=> (/^\d/.test(tok)? tok : titleCase(tok))).join(" ");
   return out;
 }
 
@@ -135,23 +133,20 @@ function extractZip(text){
 }
 
 function extractLocality(text){
-  // heurística: tras CP o, si no, lo que venga tras la última coma/salto de línea
   const a = String(text||"");
   const cp = extractZip(a);
   if (cp){
     const idx = a.indexOf(cp);
     if (idx>=0){
       const tail = a.slice(idx + cp.length).replace(/[,|\n]/g," ").trim();
-      // tomar primeras 1-3 palabras
       return tail.split(/\s+/).slice(0,3).join(" ").trim();
     }
   }
-  // sin CP: última sección tras coma o salto de línea
   const parts = a.split(/[\n,]/).map(s=>s.trim()).filter(Boolean);
   return parts.length>1 ? parts[parts.length-1] : "";
 }
 
-/* ====== Palabras clave por región para cruzar con la columna "Zona" ====== */
+/* ====== Palabras clave por región para cruzar con "Zona" ====== */
 const REGION_KEYWORDS = {
   "madrid": ["madrid","boadilla","villaviciosa","alcobendas","alcorcón","alcorcon","getafe","móstoles","mostoles","pozuelo"],
   "barcelona": ["barcelona","sant boi","sant cugat","badalona","hospitalet","l'hospitalet"],
@@ -222,7 +217,7 @@ function renderTable(rows){
   }
 }
 
-/* ================== Búsqueda & Mapa ================== */
+/* ================== Búsqueda, Explicación & Mapa ================== */
 function buildFormattedAddress(raw){
   const street = normalizeStreet(raw);
   const cp = extractZip(raw);
@@ -242,17 +237,43 @@ function updateMapFromFormatted(formatted){
   iframe.src = `https://www.google.com/maps?q=${q}&output=embed`;
 }
 
+function buildAnswerText(addrRaw, formatted, regions, ordered){
+  const box = document.getElementById("answer");
+  const names = ordered.map(r=>r.Instalador).slice(0,8); // hasta 8 para no saturar
+  const regionTxt = regions.length ? regions.join(", ") : "—";
+
+  let msg = "";
+  if (!addrRaw.trim()){
+    msg = "No se ha indicado dirección. Te muestro los instaladores activos en general, ordenados por calificación.";
+  } else if (!regions.length && ordered.length){
+    msg = `Dirección interpretada como:\n${formatted}\n\nNo detecté una región específica en el texto, así que te muestro instaladores activos ordenados por calificación.`;
+  } else if (regions.length && ordered.length){
+    msg = `Dirección interpretada como:\n${formatted}\n\nRegión detectada: ${regionTxt}.\n\nInstaladores que actúan en la zona (ordenados por calificación): ${names.join(", ")}.`;
+  } else if (regions.length && !ordered.length){
+    msg = `Dirección interpretada como:\n${formatted}\n\nRegión detectada: ${regionTxt}.\n\nNo encontré instaladores activos que coincidan exactamente con esa zona. Prueba con la ciudad/provincia o revisa abreviaturas.`;
+  } else {
+    msg = `Dirección interpretada como:\n${formatted}\n\nNo encontré coincidencias. Prueba indicando la ciudad/provincia (p. ej., “33010 Oviedo” o “Madrid”).`;
+  }
+
+  box.textContent = msg;
+  box.style.display = "block";
+}
+
 function search(){
   const raw = document.getElementById("addr").value || "";
-  const { formatted, line2, loc } = buildFormattedAddress(raw);
+  const { formatted, line2 } = buildFormattedAddress(raw);
   document.getElementById("formatted").textContent = formatted || "—";
 
-  // Detección de región usando la segunda línea (CP + localidad) y la dirección completa como respaldo
+  // Región por CP/localidad (línea 2) o por el texto completo
   const regions = detectRegionsByText(line2 || raw);
   const matches = matchInstallersByRegions(activeOnly(DATA), regions);
   const ordered = sortByRating(matches);
   renderTable(ordered);
 
+  // Respuesta textual explicativa
+  buildAnswerText(raw, formatted || raw, regions, ordered);
+
+  // Mapa
   updateMapFromFormatted(formatted || raw || "España");
 }
 
@@ -260,6 +281,7 @@ document.getElementById("go").addEventListener("click", search);
 
 // Primer render (vacío)
 document.getElementById("formatted").textContent = "—";
+document.getElementById("answer").style.display = "none";
 renderTable(sortByRating(activeOnly(DATA)));
 updateMapFromFormatted("España");
 </script>
