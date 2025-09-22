@@ -13,7 +13,6 @@
   .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
   input[type="text"] { flex: 1 1 520px; padding: 10px 12px; border-radius: 10px; border: 1px solid #bbb; }
   button { padding: 10px 14px; border-radius: 10px; border: 0; background:var(--accent); color:white; cursor:pointer; }
-  button:disabled { background:#9bbcf5; cursor:not-allowed; }
   .grid { display:grid; grid-template-columns: 1fr 420px; gap: 18px; align-items:start; }
   .card { border:1px solid var(--border); border-radius: 14px; padding: 14px; background:#fff; }
   table { width: 100%; border-collapse: collapse; margin-top: 10px; }
@@ -21,25 +20,27 @@
   th { background: #f6f7fb; border-top-left-radius: 10px; border-top-right-radius: 10px; }
   .small { font-size:12px; color:var(--muted); }
   iframe#gmaps { width:100%; height:420px; border:1px solid var(--border); border-radius:12px; }
+  .preview { white-space:pre-line; border:1px dashed var(--border); border-radius:10px; padding:8px 10px; margin-top:8px; background:#fafafa; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>Selector de instaladores por dirección</h1>
   <div class="hint">
-    Escribe una <b>dirección</b> (o ciudad/provincia) y verás los instaladores <b>activos</b> que operan en la zona,
-    ordenados por <b>Calificación</b>.
+    Escribe una <b>dirección</b> (o ciudad/provincia). Normalizamos abreviaturas (<i>cl → Calle, av → Avenida</i>) y
+    colocamos el <b>código postal</b> antes de la localidad. Verás instaladores <b>activos</b> ordenados por <b>Calificación</b>.
   </div>
 
   <div class="row">
-    <input id="addr" type="text" placeholder="Ej.: Calle Mayor 10, Madrid / Palma de Mallorca / Elche, Alicante…" />
+    <input id="addr" type="text" placeholder="Ej.: cl luis suarez 28, 33010 oviedo" />
     <button id="go">Buscar instaladores</button>
   </div>
+  <div id="formatted" class="preview small"></div>
 
   <div class="grid" style="margin-top:16px;">
     <div>
       <div class="card">
-        <div class="small">Resultado ordenado por <b>Calificación</b> (desc). Solo se consideran instaladores <b>Activos</b>.</div>
+        <div class="small">Resultado ordenado por <b>Calificación</b> (desc). Solo instaladores <b>Activos</b>.</div>
         <table id="res">
           <thead><tr><th>Instalador</th><th>Zona</th><th>Calificación</th></tr></thead>
           <tbody></tbody>
@@ -51,7 +52,7 @@
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
           <div><b>Mapa</b></div>
-          <div class="small">Se muestra la dirección buscada</div>
+          <div class="small">Se muestra la dirección formateada</div>
         </div>
         <iframe id="gmaps" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
       </div>
@@ -59,14 +60,12 @@
   </div>
 
   <div class="small" style="margin-top:8px;">
-    Fuente: tabla embebida (puedes editarla en el código). ¿Quieres que lea de Google Sheets? Te paso la variante.
+    Fuente: tabla embebida. ¿Lo quieres con Google Sheets + Maps JS (marcador preciso)? Te paso esa variante también.
   </div>
 </div>
 
 <script>
-/* ====== TABLA (edítala si necesitas) ======
-   Campos: Instalador | Zona | Activo | Calificación
-*/
+/* ================== DATOS (edita si necesitas) ================== */
 const DATA = [
   { Instalador:"Solsystem", Zona:"Barcelona (incidencias) y resto de Cataluña (según caso)", Activo:"No (pausado)", Calificación:3 },
   { Instalador:"Sunsolutions (María)", Zona:"Barcelona", Activo:"Sí", Calificación:4 },
@@ -93,6 +92,65 @@ const DATA = [
   { Instalador:"EEGA", Zona:"(zona no indicada)", Activo:"Sí", Calificación:2 },
 ];
 
+/* ========== Normalizador de dirección (ES) ========== */
+const STREET_ABBR = [
+  { rx:/^(cl|c\/|c\.|cl\.|calle)\b/i, full:"Calle" },
+  { rx:/^(av|av\.|avda|avd|avenida)\b/i, full:"Avenida" },
+  { rx:/^(ps|pso|p\.º|pº|paseo)\b/i, full:"Paseo" },
+  { rx:/^(ctra|crta|carretera)\b/i, full:"Carretera" },
+  { rx:/^(pl|pl\.|plaza)\b/i, full:"Plaza" },
+  { rx:/^(cam|cno|camino)\b/i, full:"Camino" },
+  { rx:/^(rda|ronda|rnd)\b/i, full:"Ronda" },
+  { rx:/^(trv|trva|travesi?a)\b/i, full:"Travesía" },
+  { rx:/^(pje|ptja|pasaje)\b/i, full:"Pasaje" },
+  { rx:/^(urb|urbanizaci[oó]n)\b/i, full:"Urbanización" },
+  { rx:/^(pgno|pol[íi]gono|poligono)\b/i, full:"Polígono" }
+];
+
+function titleCase(str){
+  return str.replace(/\S+/g, w => w[0].toUpperCase() + w.slice(1).toLowerCase());
+}
+
+function normalizeStreet(raw){
+  let s = String(raw||"").trim().replace(/\s+/g, " ");
+  // dividir por coma o salto de línea por si el usuario pone CP/localidad
+  const firstLine = s.split(/[\n,]/)[0].trim();
+  let out = firstLine;
+  for (const rule of STREET_ABBR){
+    if (rule.rx.test(firstLine)){
+      out = firstLine.replace(rule.rx, rule.full);
+      break;
+    }
+  }
+  // Capitaliza cada palabra excepto números
+  out = out.split(" ").map(tok=>{
+    return /^\d/.test(tok) ? tok : titleCase(tok);
+  }).join(" ");
+  return out;
+}
+
+function extractZip(text){
+  const m = String(text||"").match(/\b(\d{5})\b/);
+  return m ? m[1] : "";
+}
+
+function extractLocality(text){
+  // heurística: tras CP o, si no, lo que venga tras la última coma/salto de línea
+  const a = String(text||"");
+  const cp = extractZip(a);
+  if (cp){
+    const idx = a.indexOf(cp);
+    if (idx>=0){
+      const tail = a.slice(idx + cp.length).replace(/[,|\n]/g," ").trim();
+      // tomar primeras 1-3 palabras
+      return tail.split(/\s+/).slice(0,3).join(" ").trim();
+    }
+  }
+  // sin CP: última sección tras coma o salto de línea
+  const parts = a.split(/[\n,]/).map(s=>s.trim()).filter(Boolean);
+  return parts.length>1 ? parts[parts.length-1] : "";
+}
+
 /* ====== Palabras clave por región para cruzar con la columna "Zona" ====== */
 const REGION_KEYWORDS = {
   "madrid": ["madrid","boadilla","villaviciosa","alcobendas","alcorcón","alcorcon","getafe","móstoles","mostoles","pozuelo"],
@@ -117,6 +175,7 @@ function detectRegionsByText(text){
   return Array.from(hits);
 }
 
+/* ================== Recomendador ================== */
 function toNum(x){ const n = parseFloat(String(x).replace(",", ".")); return isNaN(n) ? 0 : n; }
 function activeOnly(rows){ return rows.filter(r => String(r.Activo||"").toLowerCase().match(/^(si|sí|true|yes)$/)); }
 
@@ -163,25 +222,46 @@ function renderTable(rows){
   }
 }
 
-function updateMap(addressText){
+/* ================== Búsqueda & Mapa ================== */
+function buildFormattedAddress(raw){
+  const street = normalizeStreet(raw);
+  const cp = extractZip(raw);
+  const loc = extractLocality(raw);
+
+  let line1 = street || "";
+  let line2 = (cp ? cp+" " : "") + (loc || "");
+  line2 = line2.trim();
+
+  const formatted = [line1, line2].filter(Boolean).join("\n");
+  return { formatted, line1, line2, cp, loc };
+}
+
+function updateMapFromFormatted(formatted){
   const iframe = document.getElementById("gmaps");
-  const q = encodeURIComponent(addressText || "España");
+  const q = encodeURIComponent(formatted.replace(/\n/g, ", "));
   iframe.src = `https://www.google.com/maps?q=${q}&output=embed`;
 }
 
 function search(){
-  const addr = document.getElementById("addr").value;
-  const regions = detectRegionsByText(addr);
+  const raw = document.getElementById("addr").value || "";
+  const { formatted, line2, loc } = buildFormattedAddress(raw);
+  document.getElementById("formatted").textContent = formatted || "—";
+
+  // Detección de región usando la segunda línea (CP + localidad) y la dirección completa como respaldo
+  const regions = detectRegionsByText(line2 || raw);
   const matches = matchInstallersByRegions(activeOnly(DATA), regions);
   const ordered = sortByRating(matches);
   renderTable(ordered);
-  updateMap(addr);
+
+  updateMapFromFormatted(formatted || raw || "España");
 }
 
 document.getElementById("go").addEventListener("click", search);
-// primer render vacío
+
+// Primer render (vacío)
+document.getElementById("formatted").textContent = "—";
 renderTable(sortByRating(activeOnly(DATA)));
-updateMap("España");
+updateMapFromFormatted("España");
 </script>
 </body>
 </html>
