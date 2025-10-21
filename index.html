@@ -1,52 +1,39 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Installer selector by province</title>
-<style>
-  :root{
-    --bg:#ffffff; --fg:#111827; --card:#ffffff; --border:#e8e8e8; --muted:#666;
-    --accent:#0d6efd; --head:#f6f7fb; --answer-bg:#f8fbff; --answer-border:#dfeaff; --preview-bg:#fafafa;
-  }
-  body{ font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,Helvetica,sans-serif; margin:24px; background:var(--bg); color:var(--fg); }
-  .wrap{ max-width:1100px; margin:0 auto; }
-  h1{ font-size:22px; margin-bottom:8px; }
-  .hint{ color:var(--muted); font-size:14px; margin-bottom:18px; }
-  .row{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
-  input[type="text"]{ flex:1 1 520px; padding:10px 12px; border-radius:10px; border:1px solid var(--border); background:var(--card); color:var(--fg); }
-  button{ padding:10px 14px; border-radius:10px; border:0; background:var(--accent); color:#fff; cursor:pointer; }
-  .grid{ display:grid; grid-template-columns:1fr 420px; gap:18px; align-items:start; }
-  .card{ border:1px solid var(--border); border-radius:14px; padding:14px; background:var(--card); }
-  table{ width:100%; border-collapse:collapse; margin-top:10px; }
-  th,td{ padding:10px; border-bottom:1px solid var(--border); text-align:left; color:var(--fg); }
-  th{ background:var(--head); }
-  .small{ font-size:12px; color:var(--muted); }
-  iframe#gmaps{ width:100%; height:420px; border:1px solid var(--border); border-radius:12px; }
-  .preview{ white-space:pre-line; border:1px dashed var(--border); border-radius:10px; padding:8px 10px; margin-top:8px; background:var(--preview-bg); }
-  .answer{ background:var(--answer-bg); border:1px solid var(--answer-border); color:#173c7a; border-radius:10px; padding:10px 12px; margin-top:10px; }
-
-  /* Dark mode */
-  body.dark{
-    --bg:#0f172a; --fg:#e5e7eb; --card:#111827; --border:#30374a; --muted:#a1a1aa;
-    --accent:#4f46e5; --head:#0b1220; --answer-bg:#0b172a; --answer-border:#1f2a44; --preview-bg:#0b1220;
-  }
-  body.dark .answer{ color:#cbd5e1; }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Selector de instaladores por dirección</title>
+  <style>
+    :root { --border:#e8e8e8; --muted:#666; --accent:#0d6efd; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, Helvetica, sans-serif; margin: 24px; }
+    .wrap { max-width: 1100px; margin: 0 auto; }
+    h1 { font-size: 22px; margin-bottom: 8px; }
+    .hint { color: #555; font-size: 14px; margin-bottom: 18px; }
+    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    input[type="text"] { flex: 1 1 520px; padding: 10px 12px; border-radius: 10px; border: 1px solid #bbb; }
+    button { padding: 10px 14px; border-radius: 10px; border: 0; background:var(--accent); color:white; cursor:pointer; }
+    .grid { display:grid; grid-template-columns: 1fr 420px; gap: 18px; align-items:start; }
+    .card { border:1px solid var(--border); border-radius: 14px; padding: 14px; background:#fff; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+    th { background: #f6f7fb; border-top-left-radius: 10px; border-top-right-radius: 10px; }
+    .small { font-size:12px; color:var(--muted); }
+    iframe#gmaps { width:100%; height:420px; border:1px solid var(--border); border-radius:12px; }
+    .preview { white-space:pre-line; border:1px dashed var(--border); border-radius:10px; padding:8px 10px; margin-top:8px; background:#fafafa; }
+    .answer { background:#f8fbff; border:1px solid #dfeaff; color:#173c7a; border-radius:10px; padding:10px 12px; margin-top:10px; }
+  </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Installer selector by province</h1>
+  <h1>Selector de instaladores por dirección</h1>
   <div class="hint">
-    Type an <b>address</b>, <b>province</b> or <b>autonomous community</b>. Street abbreviations are normalized
-    (<i>cl → Calle, av → Avenida</i>) and the <b>postal code</b> is placed before the locality. Results show
-    <b>all installers operating in the selected province</b>, <b>sorted by Rate</b> (highest first).
+    Escribe una <b>dirección</b> (o ciudad/provincia). Normalizamos abreviaturas (<i>cl → Calle, av → Avenida</i>) y colocamos el <b>código postal</b> antes de la localidad. Verás instaladores <b>activos</b> ordenados por <b>Calificación</b>.
   </div>
 
   <div class="row">
-    <input id="addr" type="text" placeholder="Examples: 'Valencia' · '46011 Valencia' · 'Comunidad Valenciana' · 'Madrid'"/>
-    <button id="go">Search installers</button>
-    <button id="darkbtn" title="Toggle dark mode">Dark mode</button>
+    <input id="addr" type="text" placeholder="Ej.: cl luis suarez 28, 33010 oviedo" />
+    <button id="go">Buscar instaladores</button>
   </div>
 
   <div id="formatted" class="preview small"></div>
@@ -55,9 +42,9 @@
   <div class="grid" style="margin-top:16px;">
     <div>
       <div class="card">
-        <div class="small">Sorted by <b>Rate</b> (desc). One row per installer (best rate within the province).</div>
+        <div class="small">Resultado ordenado por <b>Calificación</b> (desc). Solo instaladores <b>Activos</b>.</div>
         <table id="res">
-          <thead><tr><th>Installer</th><th>Province</th><th>Rate</th></tr></thead>
+          <thead><tr><th>Instalador</th><th>Zona</th><th>Calificación</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -65,26 +52,49 @@
 
     <div>
       <div class="card">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <div><b>Map</b></div>
-          <div class="small">Formatted address</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div><b>Mapa</b></div>
+          <div class="small">Se muestra la dirección formateada</div>
         </div>
-        <div class="small" style="opacity:.7; margin:-2px 0 10px 0;">created by <b>Luis Daniel Mendoza luisme</b></div>
         <iframe id="gmaps" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
       </div>
     </div>
   </div>
 
   <div class="small" style="margin-top:8px;">
-    Data source: embedded table (INSTALLER · Address · RATE). Prefer Google Sheets + Maps JS? I can share that variant.
+    Fuente: tabla embebida. ¿Lo quieres con Google Sheets + Maps JS (marcador preciso)? Puedo pasarte esa variante.
   </div>
 </div>
 
 <script>
-/* ========== Minimal seed (will be replaced by your TSV) ========== */
-const DATA = []; // se rellena desde #tsv-data
+/* ================== DATOS (tu tabla original) ================== */
+const DATA = [
+  { Instalador:"Solsystem", Zona:"Barcelona (incidencias) y resto de Cataluña (según caso)", Activo:"No (pausado)", Calificación:3 },
+  { Instalador:"Sunsolutions (María)", Zona:"Barcelona", Activo:"Sí", Calificación:4 },
+  { Instalador:"Harrak", Zona:"Barcelona", Activo:"Sí", Calificación:3 },
+  { Instalador:"Sergio (ACP / ACP Plus)", Zona:"Gijón + ~250 km alrededor", Activo:"Sí", Calificación:5 },
+  { Instalador:"Kaylon", Zona:"Madrid y alrededores", Activo:"Sí", Calificación:4 },
+  { Instalador:"Soleon", Zona:"Madrid (entre Murcia y Madrid)", Activo:"Sí", Calificación:1 },
+  { Instalador:"Inergya", Zona:"Madrid y alrededores", Activo:"Sí", Calificación:3 },
+  { Instalador:"Vettes", Zona:"Madrid y alrededores", Activo:"Sí", Calificación:5 },
+  { Instalador:"José Manuel Bugidos", Zona:"Madrid", Activo:"Sí", Calificación:3 },
+  { Instalador:"Insvert (Javier)", Zona:"Alicante y Valencia", Activo:"Sí", Calificación:4 },
+  { Instalador:"Alrola", Zona:"Valencia", Activo:"Sí", Calificación:2 },
+  { Instalador:"Bainga", Zona:"Valencia", Activo:"Sí", Calificación:4 },
+  { Instalador:"LEUK", Zona:"Sevilla (Andalucía)", Activo:"Sí", Calificación:0 },
+  { Instalador:"Teleplaca", Zona:"Sevilla (Andalucía)", Activo:"Sí", Calificación:4 },
+  { Instalador:"ERA Renovables", Zona:"Sevilla (Andalucía)", Activo:"Sí", Calificación:4 },
+  { Instalador:"Vector Solar", Zona:"Granada", Activo:"Sí", Calificación:4 },
+  { Instalador:"Jovitel", Zona:"Almería y Málaga", Activo:"Sí", Calificación:4 },
+  { Instalador:"BSS", Zona:"Madrid", Activo:"Sí", Calificación:2 },
+  { Instalador:"Fuerza y Honor (F&H)", Zona:"Islas Baleares", Activo:"Sí", Calificación:3 },
+  { Instalador:"Soluciones Solares Ibéricas", Zona:"Islas Baleares", Activo:"Sí", Calificación:4 },
+  { Instalador:"Ecoamper", Zona:"(zona no indicada)", Activo:"Sí", Calificación:5 },
+  { Instalador:"Ecosar", Zona:"(zona no indicada)", Activo:"Sí", Calificación:4 },
+  { Instalador:"EEGA", Zona:"(zona no indicada)", Activo:"Sí", Calificación:2 },
+];
 
-/* ========== Address normalizer (ES) ========== */
+/* ========== Normalizador de dirección (ES) ========== */
 const STREET_ABBR = [
   { rx:/^(cl|c\/|c\.|cl\.|calle)\b/i, full:"Calle" },
   { rx:/^(av|av\.|avda|avd|avenida)\b/i, full:"Avenida" },
@@ -122,167 +132,57 @@ function extractLocality(text){
   return parts.length>1 ? parts[parts.length-1] : "";
 }
 
-/* ===== Provinces + Communities ===== */
+/* ====== Palabras clave por región (provincias y comunidades) ====== */
 function norm(s){ return String(s||"").normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
-
-const PROVINCES = [
-  {name:"Álava", aliases:["Álava","Araba","Alava"]},
-  {name:"Albacete", aliases:["Albacete"]},
-  {name:"Alicante", aliases:["Alicante","Alacant"]},
-  {name:"Almería", aliases:["Almería","Almeria"]},
-  {name:"Ávila", aliases:["Ávila","Avila"]},
-  {name:"Badajoz", aliases:["Badajoz"]},
-  {name:"Illes Balears", aliases:["Illes Balears","Islas Baleares","Baleares","Mallorca","Menorca","Ibiza"]},
-  {name:"Barcelona", aliases:["Barcelona"]},
-  {name:"Burgos", aliases:["Burgos"]},
-  {name:"Cáceres", aliases:["Cáceres","Caceres"]},
-  {name:"Cádiz", aliases:["Cádiz","Cadiz"]},
-  {name:"Castellón", aliases:["Castellón","Castello","Castelló"]},
-  {name:"Ciudad Real", aliases:["Ciudad Real"]},
-  {name:"Córdoba", aliases:["Córdoba","Cordoba"]},
-  {name:"A Coruña", aliases:["A Coruña","La Coruña","Coruña","Coruna","A Coruna"]},
-  {name:"Cuenca", aliases:["Cuenca"]},
-  {name:"Girona", aliases:["Girona","Gerona"]},
-  {name:"Granada", aliases:["Granada"]},
-  {name:"Guadalajara", aliases:["Guadalajara"]},
-  {name:"Gipuzkoa", aliases:["Gipuzkoa","Guipúzcoa","Guipuzcoa"]},
-  {name:"Huelva", aliases:["Huelva"]},
-  {name:"Huesca", aliases:["Huesca"]},
-  {name:"Jaén", aliases:["Jaén","Jaen"]},
-  {name:"León", aliases:["León","Leon"]},
-  {name:"Lleida", aliases:["Lleida","Lérida","Lerida"]},
-  {name:"La Rioja", aliases:["La Rioja","Rioja"]},
-  {name:"Lugo", aliases:["Lugo"]},
-  {name:"Madrid", aliases:["Madrid"]},
-  {name:"Málaga", aliases:["Málaga","Malaga"]},
-  {name:"Murcia", aliases:["Murcia"]},
-  {name:"Navarra", aliases:["Navarra","Nafarroa"]},
-  {name:"Ourense", aliases:["Ourense","Orense"]},
-  {name:"Asturias", aliases:["Asturias","Oviedo","Gijón","Gijon","Avilés","Aviles"]},
-  {name:"Palencia", aliases:["Palencia"]},
-  {name:"Las Palmas", aliases:["Las Palmas"]},
-  {name:"Pontevedra", aliases:["Pontevedra"]},
-  {name:"Salamanca", aliases:["Salamanca"]},
-  {name:"Segovia", aliases:["Segovia"]},
-  {name:"Sevilla", aliases:["Sevilla"]},
-  {name:"Soria", aliases:["Soria"]},
-  {name:"Tarragona", aliases:["Tarragona"]},
-  {name:"Santa Cruz de Tenerife", aliases:["Santa Cruz de Tenerife","Tenerife"]},
-  {name:"Teruel", aliases:["Teruel"]},
-  {name:"Toledo", aliases:["Toledo"]},
-  {name:"Valencia", aliases:["Valencia","València"]},
-  {name:"Valladolid", aliases:["Valladolid"]},
-  {name:"Bizkaia", aliases:["Bizkaia","Vizcaya"]},
-  {name:"Zamora", aliases:["Zamora"]},
-  {name:"Zaragoza", aliases:["Zaragoza"]},
-  {name:"Ceuta", aliases:["Ceuta"]},
-  {name:"Melilla", aliases:["Melilla"]},
-];
-
-const CP_TO_PROV = {
-  "01":"Álava","02":"Albacete","03":"Alicante","04":"Almería","05":"Ávila","06":"Badajoz","07":"Illes Balears","08":"Barcelona","09":"Burgos",
-  "10":"Cáceres","11":"Cádiz","12":"Castellón","13":"Ciudad Real","14":"Córdoba","15":"A Coruña","16":"Cuenca","17":"Girona","18":"Granada",
-  "19":"Guadalajara","20":"Gipuzkoa","21":"Huelva","22":"Huesca","23":"Jaén","24":"León","25":"Lleida","26":"La Rioja","27":"Lugo","28":"Madrid",
-  "29":"Málaga","30":"Murcia","31":"Navarra","32":"Ourense","33":"Asturias","34":"Palencia","35":"Las Palmas","36":"Pontevedra","37":"Salamanca",
-  "38":"Santa Cruz de Tenerife","39":"Cantabria","40":"Segovia","41":"Sevilla","42":"Soria","43":"Tarragona","44":"Teruel","45":"Toledo","46":"Valencia",
-  "47":"Valladolid","48":"Bizkaia","49":"Zamora","50":"Zaragoza","51":"Ceuta","52":"Melilla"
+/* Provincias con alias relevantes que pueden aparecer en "Zona" */
+const PROVINCE_ALIASES = {
+  "madrid":["madrid","alrededores"],
+  "barcelona":["barcelona","cataluna","cataluña","catalunya"],
+  "valencia":["valencia","valència","valencia "," valencia","alicante y valencia","comunidad valenciana","comunitat valenciana"],
+  "alicante":["alicante","alacant","benidorm","elche","elx"],
+  "sevilla":["sevilla","andalucia","andalucía"],
+  "granada":["granada"],
+  "malaga":["malaga","málaga"],
+  "almeria":["almeria","almería"],
+  "asturias":["asturias","gijon","gijón","oviedo","aviles","avilés"],
+  "baleares":["islas baleares","illes balears","mallorca","ibiza","menorca"],
+  "murcia":["murcia","entre murcia y madrid"]
 };
-
-/* Communities → provinces */
-const COMMUNITY_TO_PROVINCES = {
-  "andalucia": ["Almería","Cádiz","Córdoba","Granada","Huelva","Jaén","Málaga","Sevilla"],
-  "aragon": ["Huesca","Teruel","Zaragoza"],
-  "asturias": ["Asturias"],
-  "baleares": ["Illes Balears"],
-  "canarias": ["Las Palmas","Santa Cruz de Tenerife"],
-  "cantabria": ["Cantabria"],
-  "castilla y leon": ["Ávila","Burgos","León","Palencia","Salamanca","Segovia","Soria","Valladolid","Zamora"],
-  "castilla-la mancha": ["Albacete","Ciudad Real","Cuenca","Guadalajara","Toledo"],
-  "cataluna": ["Barcelona","Girona","Lleida","Tarragona"],
-  "cataluña": ["Barcelona","Girona","Lleida","Tarragona"],
-  "catalunya": ["Barcelona","Girona","Lleida","Tarragona"],
-  "ceuta": ["Ceuta"],
-  "extremadura": ["Badajoz","Cáceres"],
-  "galicia": ["A Coruña","Lugo","Ourense","Pontevedra"],
-  "la rioja": ["La Rioja"],
-  "madrid": ["Madrid"],
-  "murcia": ["Murcia"],
-  "navarra": ["Navarra"],
-  "pais vasco": ["Álava","Gipuzkoa","Bizkaia"],
-  "paisvasco": ["Álava","Gipuzkoa","Bizkaia"],
-  "euskadi": ["Álava","Gipuzkoa","Bizkaia"],
-  "valenciana": ["Alicante","Castellón","Valencia"],
-  "comunidad valenciana": ["Alicante","Castellón","Valencia"],
-  "comunitat valenciana": ["Alicante","Castellón","Valencia"],
-  "melilla": ["Melilla"]
-};
-
-function detectProvince(text){
+/* Detecta provincia por el texto del usuario */
+function detectProvinceName(text){
   const s = norm(text);
-  for (const p of PROVINCES){ if (p.aliases.some(a => s.includes(norm(a)))) return p.name; }
+  for (const [prov, aliases] of Object.entries(PROVINCE_ALIASES)){
+    if (aliases.some(a => s.includes(norm(a)))) return prov;
+  }
+  // Por código postal
   const cp = extractZip(text);
-  if (cp && CP_TO_PROV[cp.slice(0,2)]) return CP_TO_PROV[cp.slice(0,2)];
-  return "";
-}
-function detectCommunity(text){
-  const s = norm(text);
-  for (const k in COMMUNITY_TO_PROVINCES){ if (s.includes(k)) return k; }
-  if (s.includes("comunidad de madrid")) return "madrid";
-  if (s.includes("comunidad valenciana") || s.includes("comunitat valenciana")) return "valenciana";
-  return "";
-}
-function extractProvinceFromAddress(addr){
-  const s = String(addr||"");
-  // Try by name
-  const pByName = detectProvince(s);
-  if (pByName) return pByName;
-  // Try by postal code
-  const cp = extractZip(s);
-  if (cp){ const p = CP_TO_PROV[cp.slice(0,2)]; if (p) return p; }
-  return "";
-}
-
-function provinceAliases(name){
-  const n = norm(name);
-  const p = PROVINCES.find(p => norm(p.name) === n || p.aliases.some(a => norm(a) === n));
-  return p ? p.aliases.map(a => norm(a)).concat([norm(p.name)]) : [n];
-}
-
-/* Core: collect ALL installers that have ANY address in the selected province.
-   It scans the address text itself (robust), not only a pre-filled field. */
-function installersInProvince(rows, provinceName){
-  const aliases = new Set(provinceAliases(provinceName)); // e.g., "valencia","valència"
-  const agg = new Map(); // key: installer → best rate
-  for (const r of rows){
-    const addrText = norm(r.Address || r.Zona || "");
-    const provField = norm(r.Provincia || "");
-    const hitByField = provField && (aliases.has(provField));
-    const hitByText  = addrText && [...aliases].some(a => addrText.includes(a));
-    if (hitByField || hitByText){
-      const k = r.Instalador;
-      const rate = Number(r.Calificación ?? r.Rate ?? 0);
-      if (!agg.has(k) || rate > Number(agg.get(k).Calificación)) {
-        agg.set(k, { Instalador:k, Provincia:provinceName, Calificación:rate });
-      }
-    }
+  if (cp){
+    const p2 = cp.slice(0,2);
+    const map = { "28":"madrid","08":"barcelona","46":"valencia","03":"alicante","41":"sevilla","18":"granada","29":"malaga","04":"almeria","33":"asturias","07":"baleares","30":"murcia" };
+    if (map[p2]) return map[p2];
   }
-  return Array.from(agg.values()).sort((a,b)=> b.Calificación - a.Calificación || a.Instalador.localeCompare(b.Instalador));
+  return "";
 }
 
-function installersInCommunity(rows, communityKey){
-  const provs = COMMUNITY_TO_PROVINCES[communityKey] || [];
-  const agg = new Map();
-  for (const p of provs){
-    for (const row of installersInProvince(rows, p)){
-      const k=row.Instalador, rt=row.Calificación;
-      if (!agg.has(k) || rt > agg.get(k).Calificación) agg.set(k, row);
-    }
-  }
-  return Array.from(agg.values()).sort((a,b)=> b.Calificación - a.Calificación || a.Instalador.localeCompare(b.Instalador));
-}
-
+/* ================== Recomendador ================== */
 function toNum(x){ const n = parseFloat(String(x).replace(",", ".")); return isNaN(n) ? 0 : n; }
-function activeOnly(rows){ return rows.filter(r => String(r.Activo||"Sí").toLowerCase().match(/^(si|sí|true|yes)$/)); }
+function activeOnly(rows){ return rows.filter(r => String(r.Activo||"").toLowerCase().match(/^(si|sí|true|yes)$/)); }
+
+/* Devuelve TODOS los instaladores activos cuya "Zona" contenga algún alias de la provincia detectada */
+function matchInstallersByProvince(rows, provinceKey){
+  if (!provinceKey) return [];
+  const aliases = (PROVINCE_ALIASES[provinceKey] || []).map(norm);
+  const cands = rows.filter(r => {
+    const z = norm(r.Zona||"");
+    return aliases.some(a => z.includes(a));
+  });
+  // Ordenar por Calificación desc y alfabético
+  return cands.sort((a,b)=> {
+    const d = toNum(b.Calificación) - toNum(a.Calificación);
+    if (Math.abs(d)>1e-9) return d;
+    return String(a.Instalador).localeCompare(String(b.Instalador));
+  });
+}
 
 function renderTable(rows){
   const tb = document.querySelector("#res tbody");
@@ -291,20 +191,20 @@ function renderTable(rows){
     const tr=document.createElement("tr");
     const td=document.createElement("td");
     td.colSpan=3;
-    td.textContent="No matches. Type a province (e.g., Valencia, Alicante, Madrid) or a community (Andalucía, Galicia…).";
+    td.textContent="Sin coincidencias. Prueba con ciudad/provincia (p.ej. Madrid, Valencia, Sevilla, Mallorca).";
     tr.appendChild(td); tb.appendChild(tr); return;
   }
   for(const r of rows){
     const tr=document.createElement("tr");
     const td1=document.createElement("td"); td1.textContent=r.Instalador;
-    const td2=document.createElement("td"); td2.textContent=r.Provincia || "(unknown)";
+    const td2=document.createElement("td"); td2.textContent=r.Zona;
     const td3=document.createElement("td"); td3.textContent=(r.Calificación ?? 0);
     tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3);
     tb.appendChild(tr);
   }
 }
 
-/* Search, explanation & map */
+/* ================== Búsqueda, Explicación & Mapa ================== */
 function buildFormattedAddress(raw){
   const street = normalizeStreet(raw);
   const cp = extractZip(raw);
@@ -318,156 +218,75 @@ function buildFormattedAddress(raw){
 function updateMapFromFormatted(formatted){
   const iframe = document.getElementById("gmaps");
   const q = encodeURIComponent(String(formatted||"").replace(/\n/g, ", "));
+  // ✅ corregido: usar template literal
   iframe.src = `https://www.google.com/maps?q=${q}&output=embed`;
 }
-function buildAnswerText(addrRaw, formatted, province, community, rows){
+function buildAnswerText(addrRaw, formatted, provinceKey, ordered){
   const box = document.getElementById("answer");
-  const names = rows.map(r=>r.Instalador);
+  const names = ordered.map(r=>r.Instalador).slice(0,12);
   let msg = "";
   if (!addrRaw.trim()){
-    msg = "No address provided. Showing active installers in general (type a province or community to filter).";
-  } else if (province && rows.length){
-    msg = `Interpreted address:\n${formatted}\n\nDetected province: ${province}.\n\nInstallers operating in this province (sorted by rate): ${names.join(", ")}.`;
-  } else if (community && rows.length){
-    msg = `Interpreted address:\n${formatted}\n\nDetected autonomous community: ${community}.\n\nInstallers operating in its provinces (sorted by rate): ${names.join(", ")}.`;
-  } else if (province || community){
-    msg = `Interpreted address:\n${formatted}\n\nDetected ${province ? "province" : "community"}: ${province || community}.\n\nNo active installers found in the embedded table for that area.`;
+    msg = "No se ha indicado dirección. Te muestro los instaladores activos en general, ordenados por calificación.";
+  } else if (provinceKey && ordered.length){
+    // ✅ corregido: usar template literal
+    msg = `Dirección interpretada como:
+${formatted}
+
+Provincia detectada: ${provinceKey}.
+Instaladores que actúan en la provincia (ordenados por calificación): ${names.join(", ")}.`;
+  } else if (provinceKey && !ordered.length){
+    msg = `Dirección interpretada como:
+${formatted}
+
+Provincia detectada: ${provinceKey}.
+No encontré instaladores activos que coincidan exactamente con esa zona.`;
   } else {
-    msg = `Interpreted address:\n${formatted}\n\nCouldn't detect a province/community. Try “Valencia”, “Alicante”, “Madrid”… or add a postal code.`;
+    msg = `Dirección interpretada como:
+${formatted}
+
+No detecté una provincia. Prueba indicando la ciudad/provincia (p. ej., “33010 Oviedo” o “Madrid”).`;
   }
   box.textContent = msg;
   box.style.display = "block";
 }
 
-/* Main search */
 function search(){
   const raw = document.getElementById("addr").value || "";
   const { formatted, line2 } = buildFormattedAddress(raw);
   document.getElementById("formatted").textContent = formatted || "—";
 
-  const province = detectProvince(line2 || raw);
-  const communityKey = detectCommunity(line2 || raw);
+  // Detecta provincia por texto (línea 2 o todo el input)
+  const provinceKey = detectProvinceName(line2 || raw);
 
   const base = activeOnly(DATA);
   let ordered = [];
-
-  if (province){
-    ordered = installersInProvince(base, province);
-  } else if (communityKey){
-    ordered = installersInCommunity(base, communityKey);
+  if (provinceKey){
+    ordered = matchInstallersByProvince(base, provinceKey);
   } else {
-    // No scope detected: show overall best per installer (any province)
-    const best = new Map();
-    for (const r of base){
-      const k = r.Instalador, rt = toNum(r.Calificación ?? r.Rate ?? 0);
-      if (!best.has(k) || rt > toNum(best.get(k).Calificación)){
-        best.set(k, { Instalador:k, Provincia:r.Provincia || "(unknown)", Calificación:rt });
-      }
-    }
-    ordered = Array.from(best.values()).sort((a,b)=> b.Calificación - a.Calificación || a.Instalador.localeCompare(b.Instalador));
+    // Si no hay provincia, mostrar todos activos ordenados globalmente
+    ordered = base.slice().sort((a,b)=>{
+      const d = toNum(b.Calificación) - toNum(a.Calificación);
+      if (Math.abs(d)>1e-9) return d;
+      return String(a.Instalador).localeCompare(String(b.Instalador));
+    });
   }
 
   renderTable(ordered);
-  buildAnswerText(raw, formatted || raw, province, communityKey, ordered);
-  updateMapFromFormatted(formatted || raw || "Spain");
+  buildAnswerText(raw, formatted || raw, provinceKey, ordered);
+  updateMapFromFormatted(formatted || raw || "España");
 }
 
-/* Events */
+/* Click + Enter para buscar */
 document.getElementById("go").addEventListener("click", search);
-/* Enter to search */
-document.getElementById("addr").addEventListener("keydown", (ev)=>{ if (ev.key === "Enter"){ ev.preventDefault(); search(); }});
+document.getElementById("addr").addEventListener("keydown", (ev)=>{
+  if (ev.key === "Enter"){ ev.preventDefault(); search(); }
+});
 
-/* Dark mode */
-function applyDark(on){
-  document.body.classList.toggle("dark", !!on);
-  localStorage.setItem("dark", on ? "1" : "0");
-  document.getElementById("darkbtn").textContent = on ? "Light mode" : "Dark mode";
-}
-document.getElementById("darkbtn").addEventListener("click", ()=> applyDark(!document.body.classList.contains("dark")));
-applyDark(localStorage.getItem("dark")==="1");
-
-/* Initial state */
+/* Primer render (vacío) */
 document.getElementById("formatted").textContent = "—";
 document.getElementById("answer").style.display = "none";
-updateMapFromFormatted("Spain");
-</script>
-
-<!-- ======= PASTE HERE YOUR FULL TABLE (TSV with headers: INSTALLER \t Address \t RATE) ======= -->
-<script type="text/plain" id="tsv-data">
-<!-- Replace this comment with your FULL table:
-INSTALLER<TAB>Address<TAB>RATE
-(then all rows you pasted: BAINGA<TAB>C. Luxemburgo, 28, 03130 Alicante...<TAB>5
-...) -->
-</script>
-
-<!-- ===== TSV parser → loads your table into DATA ===== -->
-<script>
-(function(){
-  const tsvEl = document.getElementById('tsv-data');
-  if (!tsvEl) return;
-  const raw = (tsvEl.textContent || tsvEl.innerText || "").trim();
-  if (!raw) return;
-
-  const hasTab = raw.includes('\t');
-  const lines = raw.split(/\r?\n/).filter(l => l.trim().length);
-  if (!lines.length) return;
-
-  // Headers
-  const header = lines.shift();
-  const headers = hasTab ? header.split('\t') : header.trim().split(/\s{2,}/);
-  const iInst = headers.findIndex(h => /^installer/i.test(h));
-  const iAddr = headers.findIndex(h => /^address/i.test(h));
-  const iRate = headers.findIndex(h => /^rate/i.test(h));
-
-  // Parse rows
-  const out = [];
-  for (const line of lines){
-    let cols = hasTab ? line.split('\t') : line.trim().split(/\s{2,}/);
-    if (!cols.length) continue;
-
-    // Heuristic if last token is a number (RATE)
-    if ((hasTab && cols.length < 3) || (!hasTab && cols.length < 3)){
-      const m = line.match(/(.*)\s+(\d+(?:[.,]\d+)?)\s*$/);
-      if (m){
-        const left = m[1].trim();
-        const rateStr = m[2];
-        if (hasTab && left.includes('\t')) cols = left.split('\t').concat([rateStr]);
-        else {
-          const mm = left.match(/^(.+?)\s{2,}(.+)$/);
-          if (mm) cols = [mm[1], mm[2], rateStr];
-        }
-      }
-    }
-
-    const inst = (cols[iInst >= 0 ? iInst : 0]||"").trim();
-    const addr = (cols[iAddr >= 0 ? iAddr : 1]||"").trim();
-    const rate = parseFloat(String(cols[iRate >= 0 ? iRate : cols.length-1]||"0").replace(",", "."));
-
-    if (inst && addr){
-      out.push({
-        Instalador: inst,
-        Address: addr,
-        Zona: addr,
-        Activo: "Sí",
-        Calificación: isNaN(rate) ? 0 : rate,
-        Provincia: extractProvinceFromAddress(addr)
-      });
-    }
-  }
-
-  if (out.length){
-    DATA.length = 0;
-    for (const r of out) DATA.push(r);
-    // Default render: if an input exists, search; else show the most common province
-    const current = document.getElementById("addr").value.trim();
-    if (current){ search(); } else {
-      const freq = {};
-      for (const r of DATA){ const p=r.Provincia||""; if(p) freq[p]=(freq[p]||0)+1; }
-      const topProv = Object.entries(freq).sort((a,b)=>b[1]-a[1])[0]?.[0] || "Valencia";
-      renderTable(installersInProvince(DATA, topProv));
-    }
-  }
-})();
+renderTable(activeOnly(DATA).sort((a,b)=> (b.Calificación??0)-(a.Calificación??0)));
+updateMapFromFormatted("España");
 </script>
 </body>
 </html>
