@@ -24,7 +24,7 @@
     flex: 1 1 520px; padding: 10px 12px; border-radius: 10px;
     border: 1px solid var(--border); background: transparent; color: var(--text);
   }
-  input::placeholder{ color: var(--muted); }
+  input::placeholder{ color:var(--muted); }
   button {
     padding: 10px 14px; border-radius: 10px; border: 0; background:var(--accent);
     color:white; cursor:pointer;
@@ -102,20 +102,26 @@
 </div>
 
 <script>
-/* ================== DATA (replaced with your list) ================== */
+/* ================== DATA (replaced + ratings from the longer table when available) ================== */
+/* Notes:
+   - Ratings copied from your longer list:
+     BAINGA 4, BSSPAIN 2 (mapped from "BSS"), ECO AMPER SL 5, EEGA 2, Era Renovables 4,
+     FUERZA&HONOR SL 3, Grupo Ecosar 4, JOVITEL SL 4, KAYLON... 4, INERGYA 3.
+   - Entries without a rating in the long table (Ecofutur, GRUPO MQ LA MANCHA S.L.U) default to 0.
+*/
 const DATA = [
-  { Instalador:"BAINGA", Zona:"Comunitat Valenciana", Activo:"Yes", Calificación:0 },
-  { Instalador:"BSSPAIN", Zona:"Andalucía, Castilla-La Mancha, Castilla y León, Comunidad de Madrid, Comunitat Valenciana, Región de Murcia", Activo:"Yes", Calificación:0 },
-  { Instalador:"ECO AMPER SL", Zona:"Comunitat Valenciana, Región de Murcia", Activo:"Yes", Calificación:0 },
+  { Instalador:"BAINGA", Zona:"Comunitat Valenciana", Activo:"Yes", Calificación:4 },
+  { Instalador:"BSSPAIN", Zona:"Andalucía, Castilla-La Mancha, Castilla y León, Comunidad de Madrid, Comunitat Valenciana, Región de Murcia", Activo:"Yes", Calificación:2 },
+  { Instalador:"ECO AMPER SL", Zona:"Comunitat Valenciana, Región de Murcia", Activo:"Yes", Calificación:5 },
   { Instalador:"Ecofutur", Zona:"Comunitat Valenciana", Activo:"Yes", Calificación:0 },
-  { Instalador:"EEGA Suministros Energéticos", Zona:"Galicia", Activo:"Yes", Calificación:0 },
-  { Instalador:"Era Renovables", Zona:"Andalucía, Aragón", Activo:"Yes", Calificación:0 },
-  { Instalador:"FUERZA&HONOR SL", Zona:"Illes Balears, Andalucía", Activo:"Yes", Calificación:0 },
-  { Instalador:"Grupo Ecosar", Zona:"Asturias, Cantabria, País Vasco, Galicia, Castilla y León, Comunidad de Madrid", Activo:"Yes", Calificación:0 },
+  { Instalador:"EEGA Suministros Energéticos", Zona:"Galicia", Activo:"Yes", Calificación:2 },
+  { Instalador:"Era Renovables", Zona:"Andalucía, Aragón", Activo:"Yes", Calificación:4 },
+  { Instalador:"FUERZA&HONOR SL", Zona:"Illes Balears, Andalucía", Activo:"Yes", Calificación:3 },
+  { Instalador:"Grupo Ecosar", Zona:"Asturias, Cantabria, País Vasco, Galicia, Castilla y León, Comunidad de Madrid", Activo:"Yes", Calificación:4 },
   { Instalador:"GRUPO MQ LA MANCHA S.L.U", Zona:"Castilla-La Mancha, Comunidad de Madrid, Andalucía, Aragón", Activo:"Yes", Calificación:0 },
-  { Instalador:"JOVITEL SL", Zona:"Andalucía", Activo:"Yes", Calificación:0 },
-  { Instalador:"KAYLON ENERGIAS RENOVABLES S.L.", Zona:"Cataluña, Comunidad de Madrid, Castilla-La Mancha, Castilla y León, Aragón, Navarra, País Vasco, Cantabria, Extremadura", Activo:"Yes", Calificación:0 },
-  { Instalador:"PROYECTOS ENERGÉTICOS INERGYA, S.L.", Zona:"Región de Murcia, Comunitat Valenciana", Activo:"Yes", Calificación:0 }
+  { Instalador:"JOVITEL SL", Zona:"Andalucía", Activo:"Yes", Calificación:4 },
+  { Instalador:"KAYLON ENERGIAS RENOVABLES S.L.", Zona:"Cataluña, Comunidad de Madrid, Castilla-La Mancha, Castilla y León, Aragón, Navarra, País Vasco, Cantabria, Extremadura", Activo:"Yes", Calificación:4 },
+  { Instalador:"PROYECTOS ENERGÉTICOS INERGYA, S.L.", Zona:"Región de Murcia, Comunitat Valenciana", Activo:"Yes", Calificación:3 }
 ];
 
 /* ================== Dark mode toggle ================== */
