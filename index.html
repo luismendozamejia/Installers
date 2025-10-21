@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Selector de instaladores por dirección</title>
+<title>Installer selector by province</title>
 <style>
   :root{
     --bg:#ffffff;
@@ -34,7 +34,7 @@
   .preview{ white-space:pre-line; border:1px dashed var(--border); border-radius:10px; padding:8px 10px; margin-top:8px; background:var(--preview-bg); }
   .answer{ background:var(--answer-bg); border:1px solid var(--answer-border); color:#173c7a; border-radius:10px; padding:10px 12px; margin-top:10px; }
 
-  /* Modo nocturno */
+  /* Dark mode */
   body.dark{
     --bg:#0f172a; --fg:#e5e7eb; --card:#111827; --border:#30374a; --muted:#a1a1aa;
     --accent:#4f46e5; --head:#0b1220; --answer-bg:#0b172a; --answer-border:#1f2a44; --preview-bg:#0b1220;
@@ -44,17 +44,17 @@
 </head>
 <body>
 <div class="wrap">
-  <h1>Selector de instaladores por dirección</h1>
+  <h1>Installer selector by province</h1>
   <div class="hint">
-    Escribe una <b>dirección</b>, <b>provincia</b> o <b>comunidad autónoma</b>. Normalizamos abreviaturas
-    (<i>cl → Calle, av → Avenida</i>) y colocamos el <b>código postal</b> antes de la localidad. Verás instaladores
-    <b>activos</b> ordenados por <b>Calificación</b>.
+    Type an <b>address</b>, <b>province</b> or <b>autonomous community</b>. We normalize street abbreviations
+    (<i>cl → Calle, av → Avenida</i>) and put the <b>postal code</b> before the locality. You’ll see <b>active</b> installers,
+    <b>sorted by Rating</b>, that have at least one address in the selected province.
   </div>
 
   <div class="row">
-    <input id="addr" type="text" placeholder="Ej.: '46011 Valencia' · 'Valencia' · 'Comunidad Valenciana' · '33010 Oviedo'"/>
-    <button id="go">Buscar instaladores</button>
-    <button id="darkbtn" title="Alternar modo nocturno">Modo nocturno</button>
+    <input id="addr" type="text" placeholder="Examples: '46011 Valencia' · 'Valencia' · 'Comunidad Valenciana' · '33010 Oviedo'"/>
+    <button id="go">Search installers</button>
+    <button id="darkbtn" title="Toggle dark mode">Dark mode</button>
   </div>
 
   <div id="formatted" class="preview small"></div>
@@ -63,9 +63,9 @@
   <div class="grid" style="margin-top:16px;">
     <div>
       <div class="card">
-        <div class="small">Resultado ordenado por <b>Calificación</b> (desc). Solo instaladores <b>Activos</b>.</div>
+        <div class="small">Sorted by <b>Rating</b> (desc). Only <b>Active</b> installers. One row per installer (best rating in that province).</div>
         <table id="res">
-          <thead><tr><th>Instalador</th><th>Zona</th><th>Calificación</th></tr></thead>
+          <thead><tr><th>Installer</th><th>Province</th><th>Rating</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -74,30 +74,30 @@
     <div>
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <div><b>Mapa</b></div>
-          <div class="small">Se muestra la dirección formateada</div>
+          <div><b>Map</b></div>
+          <div class="small">Formatted address</div>
         </div>
-        <!-- Mención discreta -->
-        <div class="small" style="opacity:.7; margin:-2px 0 10px 0;">creado por luis daniel mendoza luisme</div>
+        <!-- Discreet credit -->
+        <div class="small" style="opacity:.7; margin:-2px 0 10px 0;">created by <b>Luis Daniel Mendoza luisme</b></div>
         <iframe id="gmaps" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
       </div>
     </div>
   </div>
 
   <div class="small" style="margin-top:8px;">
-    Fuente: tabla embebida (INSTALLER · Address · RATE). ¿Lo quieres con Google Sheets + Maps JS (marcador preciso)? Puedo pasarte esa variante.
+    Data source: embedded table (INSTALLER · Address · RATE). If you prefer Google Sheets + Maps JS (precise marker), I can share that variant.
   </div>
 </div>
 
 <script>
-/* ================== MOCK inicial (se reemplaza con tu TSV) ================== */
+/* ================== Minimal fallback (will be replaced by your TSV) ================== */
 const DATA = [
   { Instalador:"Bainga", Zona:"Valencia", Activo:"Sí", Calificación:5 },
   { Instalador:"Insvert", Zona:"Alicante", Activo:"Sí", Calificación:5 },
   { Instalador:"Vettes Solar", Zona:"Madrid", Activo:"Sí", Calificación:5 },
 ];
 
-/* ========== Normalizador dirección (ES) ========== */
+/* ========== Address normalizer (ES) ========== */
 const STREET_ABBR = [
   { rx:/^(cl|c\/|c\.|cl\.|calle)\b/i, full:"Calle" },
   { rx:/^(av|av\.|avda|avd|avenida)\b/i, full:"Avenida" },
@@ -135,7 +135,7 @@ function extractLocality(text){
   return parts.length>1 ? parts[parts.length-1] : "";
 }
 
-/* ===== Provincias + Comunidades ===== */
+/* ===== Provinces + Communities ===== */
 function norm(s){ return String(s||"").normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); }
 
 const PROVINCES = [
@@ -201,7 +201,7 @@ const CP_TO_PROV = {
   "47":"Valladolid","48":"Bizkaia","49":"Zamora","50":"Zaragoza","51":"Ceuta","52":"Melilla"
 };
 
-/* Comunidades → provincias */
+/* Communities → provinces */
 const COMMUNITY_TO_PROVINCES = {
   "andalucia": ["Almería","Cádiz","Córdoba","Granada","Huelva","Jaén","Málaga","Sevilla"],
   "aragon": ["Huesca","Teruel","Zaragoza"],
@@ -244,15 +244,13 @@ function detectCommunity(text){
   for (const k in COMMUNITY_TO_PROVINCES){
     if (s.includes(k)) return k;
   }
-  // alias comunes
   if (s.includes("comunidad de madrid")) return "madrid";
   if (s.includes("comunidad valenciana") || s.includes("comunitat valenciana")) return "valenciana";
   return "";
 }
-
 function extractProvinceFromAddress(addr){ return detectProvince(addr); }
 
-/* ================== Recomendador ================== */
+/* ================== Recommender ================== */
 function toNum(x){ const n = parseFloat(String(x).replace(",", ".")); return isNaN(n) ? 0 : n; }
 function activeOnly(rows){ return rows.filter(r => String(r.Activo||"").toLowerCase().match(/^(si|sí|true|yes)$/)); }
 function sortByRating(rows){
@@ -262,10 +260,16 @@ function sortByRating(rows){
     return String(a.Instalador).localeCompare(String(b.Instalador));
   });
 }
-function uniqueByInstaller(rows){
-  const seen=new Set(), out=[];
-  for (const r of rows){ if(!seen.has(r.Instalador)){ out.push(r); seen.add(r.Instalador); } }
-  return out;
+/* Keep one row per installer: best rating inside the selected province */
+function bestPerInstaller(rows){
+  const best = new Map();
+  for (const r of rows){
+    const key = r.Instalador;
+    if (!best.has(key) || toNum(r.Calificación) > toNum(best.get(key).Calificación)){
+      best.set(key, r);
+    }
+  }
+  return Array.from(best.values());
 }
 function renderTable(rows){
   const tb = document.querySelector("#res tbody");
@@ -274,20 +278,20 @@ function renderTable(rows){
     const tr=document.createElement("tr");
     const td=document.createElement("td");
     td.colSpan=3;
-    td.textContent="Sin coincidencias. Escribe una provincia (p.ej. Valencia, Alicante, Madrid, Sevilla) o una comunidad (Andalucía, Galicia…).";
+    td.textContent="No matches. Type a province (e.g., Valencia, Alicante, Madrid, Sevilla) or a community (Andalucía, Galicia…).";
     tr.appendChild(td); tb.appendChild(tr); return;
   }
   for(const r of rows){
     const tr=document.createElement("tr");
     const td1=document.createElement("td"); td1.textContent=r.Instalador;
-    const td2=document.createElement("td"); td2.textContent=r.Zona;
+    const td2=document.createElement("td"); td2.textContent=r.Provincia || "(unknown)";
     const td3=document.createElement("td"); td3.textContent=(r.Calificación ?? 0);
     tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3);
     tb.appendChild(tr);
   }
 }
 
-/* ================== Búsqueda, explicación & mapa ================== */
+/* ================== Search, explanation & map ================== */
 function buildFormattedAddress(raw){
   const street = normalizeStreet(raw);
   const cp = extractZip(raw);
@@ -301,34 +305,34 @@ function buildFormattedAddress(raw){
 function updateMapFromFormatted(formatted){
   const iframe = document.getElementById("gmaps");
   const q = encodeURIComponent(String(formatted||"").replace(/\n/g, ", "));
-  iframe.src = `https://www.google.com/maps?q=${q}&output=embed`; // <-- FIX: backticks
+  iframe.src = `https://www.google.com/maps?q=${q}&output=embed`;
 }
 
 function buildAnswerText(addrRaw, formatted, province, community, ordered){
   const box = document.getElementById("answer");
-  const names = ordered.map(r=>r.Instalador).slice(0,8);
+  const names = ordered.map(r=>r.Instalador);
   let msg = "";
   if (!addrRaw.trim()){
-    msg = "No se ha indicado dirección. Te muestro instaladores activos en general (usa una provincia o comunidad para afinar).";
+    msg = "No address provided. Showing active installers in general (type a province or community to filter).";
   } else if (province && ordered.length){
-    msg = `Dirección interpretada como:\n${formatted}\n\nProvincia detectada: ${province}.\n\nInstaladores con direcciones en la provincia (ordenados por calificación): ${names.join(", ")}.`;
+    msg = `Interpreted address:\n${formatted}\n\nDetected province: ${province}.\n\nInstallers with at least one address in this province (sorted by rating): ${names.join(", ")}.`;
   } else if (community && ordered.length){
-    msg = `Dirección interpretada como:\n${formatted}\n\nComunidad detectada: ${community}.\n\nInstaladores con direcciones en la comunidad (ordenados por calificación): ${names.join(", ")}.`;
+    msg = `Interpreted address:\n${formatted}\n\nDetected autonomous community: ${community}.\n\nInstallers acting in its provinces (sorted by rating): ${names.join(", ")}.`;
   } else if (province || community){
-    msg = `Dirección interpretada como:\n${formatted}\n\n${province ? "Provincia" : "Comunidad"} detectada: ${province || community}.\n\nNo encontré instaladores activos con direcciones en esa zona en la tabla.`;
+    msg = `Interpreted address:\n${formatted}\n\nDetected ${province ? "province" : "community"}: ${province || community}.\n\nNo active installers found in the embedded table for that area.`;
   } else {
-    msg = `Dirección interpretada como:\n${formatted}\n\nNo pude detectar provincia/comunidad. Prueba con “Valencia”, “Comunidad Valenciana”, “Madrid”… o añade un código postal.`;
+    msg = `Interpreted address:\n${formatted}\n\nCouldn't detect a province/community. Try “Valencia”, “Comunidad Valenciana”, “Madrid”… or add a postal code.`;
   }
   box.textContent = msg;
   box.style.display = "block";
 }
 
-/* anotamos Provincia en cada fila (DATA) para acelerar los filtros */
+/* Annotate province in each DATA row */
 function annotateProvincesInData(){
   for (const r of DATA){ if (!r.Provincia) r.Provincia = extractProvinceFromAddress(r.Zona || ""); }
 }
 
-/* === Buscar por PROVINCIA o COMUNIDAD === */
+/* === Search by PROVINCE (preferred) or COMMUNITY (fallback) === */
 function search(){
   const raw = document.getElementById("addr").value || "";
   const { formatted, line2 } = buildFormattedAddress(raw);
@@ -344,39 +348,45 @@ function search(){
     const provs = COMMUNITY_TO_PROVINCES[communityKey] || [];
     matches = matches.filter(r => provs.some(p => norm(r.Provincia) === norm(p)));
   }
-  const ordered = uniqueByInstaller(sortByRating(matches));
+
+  /* Keep best rating per installer within the selected province/community, then sort by rating */
+  const perInstaller = bestPerInstaller(matches);
+  const ordered = sortByRating(perInstaller);
+
   renderTable(ordered);
   buildAnswerText(raw, formatted || raw, province, communityKey, ordered);
-  updateMapFromFormatted(formatted || raw || "España");
+  updateMapFromFormatted(formatted || raw || "Spain");
 }
 
-/* Eventos */
+/* Events */
 document.getElementById("go").addEventListener("click", search);
+/* Enter to search */
 document.getElementById("addr").addEventListener("keydown", (ev)=>{ if (ev.key === "Enter"){ ev.preventDefault(); search(); }});
 
-/* Modo nocturno */
+/* Dark mode */
 function applyDark(on){
   document.body.classList.toggle("dark", !!on);
   localStorage.setItem("dark", on ? "1" : "0");
-  document.getElementById("darkbtn").textContent = on ? "Modo claro" : "Modo nocturno";
+  document.getElementById("darkbtn").textContent = on ? "Light mode" : "Dark mode";
 }
 document.getElementById("darkbtn").addEventListener("click", ()=> applyDark(!document.body.classList.contains("dark")));
 applyDark(localStorage.getItem("dark")==="1");
 
-/* Estado inicial */
+/* Initial state */
 annotateProvincesInData();
 document.getElementById("formatted").textContent = "—";
 document.getElementById("answer").style.display = "none";
-renderTable(uniqueByInstaller(sortByRating(activeOnly(DATA))));
-updateMapFromFormatted("España");
+/* Show all active installers (best per installer) by default */
+renderTable(sortByRating(bestPerInstaller(activeOnly(DATA))));
+updateMapFromFormatted("Spain");
 </script>
 
-<!-- ======= PEGA AQUÍ TU TABLA COMPLETA (TSV con cabeceras INSTALLER  Address  RATE) ======= -->
+<!-- ======= PASTE HERE YOUR FULL TABLE (TSV with headers: INSTALLER \t Address \t RATE) ======= -->
 <script type="text/plain" id="tsv-data">
-<!-- Pega debajo TODA la tabla que me diste (sin comillas), con columnas: INSTALLER[TAB]Address[TAB]RATE -->
+<!-- Paste below the FULL table you sent (no quotes), columns: INSTALLER[TAB]Address[TAB]RATE -->
 </script>
 
-<!-- ===== Parser TSV → sustituye DATA por tu tabla ===== -->
+<!-- ===== TSV parser → replaces DATA with your table ===== -->
 <script>
 (function(){
   const tsvEl = document.getElementById('tsv-data');
@@ -415,7 +425,8 @@ updateMapFromFormatted("España");
     DATA.length = 0;
     for (const r of rows) DATA.push(r);
     annotateProvincesInData();
-    renderTable(uniqueByInstaller(sortByRating(activeOnly(DATA))));
+    /* Refresh initial view with your data */
+    renderTable(sortByRating(bestPerInstaller(activeOnly(DATA))));
     const current = document.getElementById("addr").value.trim();
     if (current){ search(); }
   }
