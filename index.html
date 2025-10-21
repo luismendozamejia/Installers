@@ -1,40 +1,73 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Selector de instaladores por dirección</title>
+<title>Installer finder by address</title>
 <style>
-  :root { --border:#e8e8e8; --muted:#666; --accent:#0d6efd; }
+  :root{
+    --bg:#ffffff; --text:#111; --muted:#666; --border:#e8e8e8; --accent:#0d6efd; --soft:#f6f7fb; --answer-bg:#f8fbff; --answer-border:#dfeaff;
+  }
+  /* Dark mode */
+  :root[data-theme="dark"]{
+    --bg:#0f1216; --text:#e9eef5; --muted:#9aa4b2; --border:#2a2f36; --accent:#5aa2ff; --soft:#131820; --answer-bg:#0f1928; --answer-border:#213049;
+  }
+
+  html, body { background:var(--bg); color:var(--text); }
   body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, Helvetica, sans-serif; margin: 24px; }
   .wrap { max-width: 1100px; margin: 0 auto; }
+
   h1 { font-size: 22px; margin-bottom: 8px; }
-  .hint { color: #555; font-size: 14px; margin-bottom: 18px; }
+  .hint { color: var(--muted); font-size: 14px; margin-bottom: 18px; }
   .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-  input[type="text"] { flex: 1 1 520px; padding: 10px 12px; border-radius: 10px; border: 1px solid #bbb; }
-  button { padding: 10px 14px; border-radius: 10px; border: 0; background:var(--accent); color:white; cursor:pointer; }
+  input[type="text"] {
+    flex: 1 1 520px; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--border); background: transparent; color: var(--text);
+  }
+  input::placeholder{ color: var(--muted); }
+  button {
+    padding: 10px 14px; border-radius: 10px; border: 0; background:var(--accent);
+    color:white; cursor:pointer;
+  }
+  .ghost { background:transparent; color:var(--text); border:1px solid var(--border); }
   .grid { display:grid; grid-template-columns: 1fr 420px; gap: 18px; align-items:start; }
-  .card { border:1px solid var(--border); border-radius: 14px; padding: 14px; background:#fff; }
+  .card { border:1px solid var(--border); border-radius: 14px; padding: 14px; background:transparent; }
   table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-  th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
-  th { background: #f6f7fb; border-top-left-radius: 10px; border-top-right-radius: 10px; }
+  th, td { padding: 10px; border-bottom: 1px solid var(--border); text-align: left; }
+  th { background: var(--soft); border-top-left-radius: 10px; border-top-right-radius: 10px; }
   .small { font-size:12px; color:var(--muted); }
-  iframe#gmaps { width:100%; height:420px; border:1px solid var(--border); border-radius:12px; }
-  .preview { white-space:pre-line; border:1px dashed var(--border); border-radius:10px; padding:8px 10px; margin-top:8px; background:#fafafa; }
-  .answer { background:#f8fbff; border:1px solid #dfeaff; color:#173c7a; border-radius:10px; padding:10px 12px; margin-top:10px; }
+  iframe#gmaps { width:100%; height:420px; border:1px solid var(--border); border-radius:12px; background:#fff; }
+  .preview { white-space:pre-line; border:1px dashed var(--border); border-radius:10px; padding:8px 10px; margin-top:8px; background:transparent; }
+  .answer { background:var(--answer-bg); border:1px solid var(--answer-border); color:var(--text); border-radius:10px; padding:10px 12px; margin-top:10px; }
+
+  .topbar {
+    display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px;
+  }
+  .toggle {
+    display:inline-flex; align-items:center; gap:8px; font-size:13px; color:var(--muted);
+  }
+  .badge {
+    display:inline-block; font-size:11px; padding:4px 8px; border-radius:999px; border:1px solid var(--border); color:var(--muted);
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Selector de instaladores por dirección</h1>
+  <div class="topbar">
+    <h1>Installer finder by address</h1>
+    <div class="toggle">
+      <span id="themeLabel">Light</span>
+      <button id="themeBtn" class="ghost" aria-label="Toggle dark mode">🌙 Dark mode</button>
+    </div>
+  </div>
+
   <div class="hint">
-    Escribe una <b>dirección</b> (o ciudad/provincia). Normalizamos abreviaturas (<i>cl → Calle, av → Avenida</i>) y
-    colocamos el <b>código postal</b> antes de la localidad. Verás instaladores <b>activos</b> ordenados por <b>Calificación</b>.
+    Type an <b>address</b> (or city/province). We normalize street abbreviations (<i>cl → Calle, av → Avenida</i>) and place the <b>ZIP code</b> before the locality. You’ll see <b>active</b> installers sorted by <b>Rating</b>.
   </div>
 
   <div class="row">
-    <input id="addr" type="text" placeholder="Ej.: cl luis suarez 28, 33010 oviedo" />
-    <button id="go">Buscar instaladores</button>
+    <input id="addr" type="text" placeholder="e.g., cl luis suarez 28, 33010 oviedo" />
+    <button id="go">Search installers</button>
   </div>
   <div id="formatted" class="preview small"></div>
   <div id="answer" class="answer small" style="display:none;"></div>
@@ -42,9 +75,9 @@
   <div class="grid" style="margin-top:16px;">
     <div>
       <div class="card">
-        <div class="small">Resultado ordenado por <b>Calificación</b> (desc). Solo instaladores <b>Activos</b>.</div>
+        <div class="small">Sorted by <b>Rating</b> (desc). Only <b>Active</b> installers.</div>
         <table id="res">
-          <thead><tr><th>Instalador</th><th>Zona</th><th>Calificación</th></tr></thead>
+          <thead><tr><th>Installer</th><th>Area</th><th>Rating</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -53,37 +86,59 @@
     <div>
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <div><b>Mapa</b></div>
-          <div class="small">Se muestra la dirección formateada</div>
+          <div><b>Map</b></div>
+          <div class="small">Shows the formatted address</div>
         </div>
+        <!-- Credit ABOVE the map (as requested) -->
+        <div class="badge" title="Credit">Map block by Luis Daniel Mendoza @luisme</div>
         <iframe id="gmaps" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
       </div>
     </div>
   </div>
 
   <div class="small" style="margin-top:8px;">
-    Fuente: tabla embebida. ¿Lo quieres con Google Sheets + Maps JS (marcador preciso)? Puedo pasarte esa variante.
+    Source: embedded table. Want it connected to Google Sheets + Maps JS (precise marker)? I can share that variant.
   </div>
 </div>
 
 <script>
-/* ================== DATOS (actualizados) ================== */
+/* ================== DATA (replaced with your list) ================== */
 const DATA = [
-  { Instalador:"BAINGA", Zona:"Comunitat Valenciana", Activo:"Sí", Calificación:0 },
-  { Instalador:"BSSPAIN", Zona:"Andalucía, Castilla-La Mancha, Castilla y León, Comunidad de Madrid, Comunitat Valenciana, Región de Murcia", Activo:"Sí", Calificación:0 },
-  { Instalador:"ECO AMPER SL", Zona:"Comunitat Valenciana, Región de Murcia", Activo:"Sí", Calificación:0 },
-  { Instalador:"Ecofutur", Zona:"Comunitat Valenciana", Activo:"Sí", Calificación:0 },
-  { Instalador:"EEGA Suministros Energéticos", Zona:"Galicia", Activo:"Sí", Calificación:0 },
-  { Instalador:"Era Renovables", Zona:"Andalucía, Aragón", Activo:"Sí", Calificación:0 },
-  { Instalador:"FUERZA&HONOR SL", Zona:"Illes Balears, Andalucía", Activo:"Sí", Calificación:0 },
-  { Instalador:"Grupo Ecosar", Zona:"Asturias, Cantabria, País Vasco, Galicia, Castilla y León, Comunidad de Madrid", Activo:"Sí", Calificación:0 },
-  { Instalador:"GRUPO MQ LA MANCHA S.L.U", Zona:"Castilla-La Mancha, Comunidad de Madrid, Andalucía, Aragón", Activo:"Sí", Calificación:0 },
-  { Instalador:"JOVITEL SL", Zona:"Andalucía", Activo:"Sí", Calificación:0 },
-  { Instalador:"KAYLON ENERGIAS RENOVABLES S.L.", Zona:"Cataluña, Comunidad de Madrid, Castilla-La Mancha, Castilla y León, Aragón, Navarra, País Vasco, Cantabria, Extremadura", Activo:"Sí", Calificación:0 },
-  { Instalador:"PROYECTOS ENERGÉTICOS INERGYA, S.L.", Zona:"Región de Murcia, Comunitat Valenciana", Activo:"Sí", Calificación:0 }
+  { Instalador:"BAINGA", Zona:"Comunitat Valenciana", Activo:"Yes", Calificación:0 },
+  { Instalador:"BSSPAIN", Zona:"Andalucía, Castilla-La Mancha, Castilla y León, Comunidad de Madrid, Comunitat Valenciana, Región de Murcia", Activo:"Yes", Calificación:0 },
+  { Instalador:"ECO AMPER SL", Zona:"Comunitat Valenciana, Región de Murcia", Activo:"Yes", Calificación:0 },
+  { Instalador:"Ecofutur", Zona:"Comunitat Valenciana", Activo:"Yes", Calificación:0 },
+  { Instalador:"EEGA Suministros Energéticos", Zona:"Galicia", Activo:"Yes", Calificación:0 },
+  { Instalador:"Era Renovables", Zona:"Andalucía, Aragón", Activo:"Yes", Calificación:0 },
+  { Instalador:"FUERZA&HONOR SL", Zona:"Illes Balears, Andalucía", Activo:"Yes", Calificación:0 },
+  { Instalador:"Grupo Ecosar", Zona:"Asturias, Cantabria, País Vasco, Galicia, Castilla y León, Comunidad de Madrid", Activo:"Yes", Calificación:0 },
+  { Instalador:"GRUPO MQ LA MANCHA S.L.U", Zona:"Castilla-La Mancha, Comunidad de Madrid, Andalucía, Aragón", Activo:"Yes", Calificación:0 },
+  { Instalador:"JOVITEL SL", Zona:"Andalucía", Activo:"Yes", Calificación:0 },
+  { Instalador:"KAYLON ENERGIAS RENOVABLES S.L.", Zona:"Cataluña, Comunidad de Madrid, Castilla-La Mancha, Castilla y León, Aragón, Navarra, País Vasco, Cantabria, Extremadura", Activo:"Yes", Calificación:0 },
+  { Instalador:"PROYECTOS ENERGÉTICOS INERGYA, S.L.", Zona:"Región de Murcia, Comunitat Valenciana", Activo:"Yes", Calificación:0 }
 ];
 
-/* ========== Normalizador de dirección (ES) ========== */
+/* ================== Dark mode toggle ================== */
+const root = document.documentElement;
+const themeBtn = document.getElementById('themeBtn');
+const themeLabel = document.getElementById('themeLabel');
+
+function applyTheme(t){
+  root.setAttribute('data-theme', t);
+  themeLabel.textContent = (t === 'dark') ? 'Dark' : 'Light';
+  themeBtn.textContent = (t === 'dark') ? '☀️ Light mode' : '🌙 Dark mode';
+  localStorage.setItem('theme', t);
+}
+(function initTheme(){
+  const saved = localStorage.getItem('theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  applyTheme(saved);
+})();
+themeBtn.addEventListener('click', () => {
+  const next = (root.getAttribute('data-theme') === 'dark') ? 'light' : 'dark';
+  applyTheme(next);
+});
+
+/* ========== Address normalizer (ES) ========== */
 const STREET_ABBR = [
   { rx:/^(cl|c\/|c\.|cl\.|calle)\b/i, full:"Calle" },
   { rx:/^(av|av\.|avda|avd|avenida)\b/i, full:"Avenida" },
@@ -135,7 +190,7 @@ function extractLocality(text){
   return parts.length>1 ? parts[parts.length-1] : "";
 }
 
-/* ====== Palabras clave por región para cruzar con "Zona" ====== */
+/* ====== Region keywords (Spanish) to match against "Zona" ====== */
 const REGION_KEYWORDS = {
   "madrid": ["madrid","boadilla","villaviciosa","alcobendas","alcorcón","alcorcon","getafe","móstoles","mostoles","pozuelo"],
   "barcelona": ["barcelona","sant boi","sant cugat","badalona","hospitalet","l'hospitalet"],
@@ -159,9 +214,11 @@ function detectRegionsByText(text){
   return Array.from(hits);
 }
 
-/* ================== Recomendador ================== */
+/* ================== Recommender ================== */
 function toNum(x){ const n = parseFloat(String(x).replace(",", ".")); return isNaN(n) ? 0 : n; }
-function activeOnly(rows){ return rows.filter(r => String(r.Activo||"").toLowerCase().match(/^(si|sí|true|yes)$/)); }
+function activeOnly(rows){
+  return rows.filter(r => String(r.Activo||"").toLowerCase().match(/^(si|sí|true|yes)$/));
+}
 
 function matchInstallersByRegions(rows, regions){
   if(!regions.length) return rows;
@@ -192,7 +249,7 @@ function renderTable(rows){
   if(!rows.length){
     const tr=document.createElement("tr");
     const td=document.createElement("td");
-    td.colSpan=3; td.textContent="Sin coincidencias. Prueba con ciudad/provincia (p.ej. Madrid, Valencia, Sevilla, Mallorca).";
+    td.colSpan=3; td.textContent="No matches. Try with a city/province (e.g., Madrid, Valencia, Sevilla, Mallorca).";
     tr.appendChild(td); tb.appendChild(tr);
     return;
   }
@@ -206,7 +263,7 @@ function renderTable(rows){
   }
 }
 
-/* ================== Búsqueda, Explicación & Mapa ================== */
+/* ================== Search, Explanation & Map ================== */
 function buildFormattedAddress(raw){
   const street = normalizeStreet(raw);
   const cp = extractZip(raw);
@@ -222,26 +279,26 @@ function buildFormattedAddress(raw){
 
 function updateMapFromFormatted(formatted){
   const iframe = document.getElementById("gmaps");
-  const q = encodeURIComponent(formatted.replace(/\n/g, ", "));
+  const q = encodeURIComponent((formatted || "").replace(/\n/g, ", "));
   iframe.src = `https://www.google.com/maps?q=${q}&output=embed`;
 }
 
 function buildAnswerText(addrRaw, formatted, regions, ordered){
   const box = document.getElementById("answer");
-  const names = ordered.map(r=>r.Instalador).slice(0,8); // hasta 8 para no saturar
+  const names = ordered.map(r=>r.Instalador).slice(0,8);
   const regionTxt = regions.length ? regions.join(", ") : "—";
 
   let msg = "";
   if (!addrRaw.trim()){
-    msg = "No se ha indicado dirección. Te muestro los instaladores activos en general, ordenados por calificación.";
+    msg = "No address provided. Showing active installers in general, sorted by rating.";
   } else if (!regions.length && ordered.length){
-    msg = `Dirección interpretada como:\n${formatted}\n\nNo detecté una región específica en el texto, así que te muestro instaladores activos ordenados por calificación.`;
+    msg = `Parsed address as:\n${formatted}\n\nNo specific region detected in the text, so I'm showing active installers sorted by rating.`;
   } else if (regions.length && ordered.length){
-    msg = `Dirección interpretada como:\n${formatted}\n\nRegión detectada: ${regionTxt}.\n\nInstaladores que actúan en la zona (ordenados por calificación): ${names.join(", ")}.`;
+    msg = `Parsed address as:\n${formatted}\n\nDetected region(s): ${regionTxt}.\n\nInstallers operating in the area (sorted by rating): ${names.join(", ")}.`;
   } else if (regions.length && !ordered.length){
-    msg = `Dirección interpretada como:\n${formatted}\n\nRegión detectada: ${regionTxt}.\n\nNo encontré instaladores activos que coincidan exactamente con esa zona. Prueba con la ciudad/provincia o revisa abreviaturas.`;
+    msg = `Parsed address as:\n${formatted}\n\nDetected region(s): ${regionTxt}.\n\nNo active installers found that match the area. Try specifying city/province or check abbreviations.`;
   } else {
-    msg = `Dirección interpretada como:\n${formatted}\n\nNo encontré coincidencias. Prueba indicando la ciudad/provincia (p. ej., “33010 Oviedo” o “Madrid”).`;
+    msg = `Parsed address as:\n${formatted}\n\nNo matches found. Try including city/province (e.g., “33010 Oviedo” or “Madrid”).`;
   }
 
   box.textContent = msg;
@@ -253,22 +310,26 @@ function search(){
   const { formatted, line2 } = buildFormattedAddress(raw);
   document.getElementById("formatted").textContent = formatted || "—";
 
-  // Región por CP/localidad (línea 2) o por el texto completo
   const regions = detectRegionsByText(line2 || raw);
   const matches = matchInstallersByRegions(activeOnly(DATA), regions);
   const ordered = sortByRating(matches);
   renderTable(ordered);
 
-  // Respuesta textual explicativa
   buildAnswerText(raw, formatted || raw, regions, ordered);
-
-  // Mapa
   updateMapFromFormatted(formatted || raw || "España");
 }
 
+/* ================== Events ================== */
 document.getElementById("go").addEventListener("click", search);
+/* Trigger search when pressing Enter */
+document.getElementById("addr").addEventListener("keydown", (ev)=>{
+  if (ev.key === "Enter") {
+    ev.preventDefault();
+    search();
+  }
+});
 
-// Primer render (vacío)
+/* First render (empty) */
 document.getElementById("formatted").textContent = "—";
 document.getElementById("answer").style.display = "none";
 renderTable(sortByRating(activeOnly(DATA)));
