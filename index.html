@@ -1,193 +1,77 @@
-<!DOCTYPE html>
-<html lang="es" class="light">
+<!doctype html>
+<html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Buscador de Instaladores</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Selector de instaladores por dirección</title>
   <style>
-    :root{
-      --bg:#f7f7fb; --text:#1c1c1f; --muted:#6b7280; --card:#ffffff; --accent:#2563eb; --chip:#eef2ff;
-      --input:#ffffff; --border:#e5e7eb; --shadow:0 10px 25px rgba(0,0,0,.06);
-    }
-    .dark{
-      --bg:#0b1220; --text:#e5e7eb; --muted:#9aa4b2; --card:#0f172a; --accent:#60a5fa; --chip:#1e293b;
-      --input:#0b1220; --border:#1f2937; --shadow:0 10px 25px rgba(0,0,0,.35);
-    }
-    *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji"}
-    header{position:sticky;top:0;background:linear-gradient(180deg,var(--bg),rgba(0,0,0,0));padding:24px 16px 12px;backdrop-filter:saturate(160%) blur(8px)}
-    .container{max-width:1100px;margin:0 auto;padding:0 16px}
-    .title{font-size:clamp(20px,3vw,28px);font-weight:800;letter-spacing:.1px}
-    .subtitle{color:var(--muted);margin-top:6px}
-    .toolbar{display:flex;gap:10px;margin-top:16px;align-items:center}
-    .input{flex:1;display:flex;gap:8px;background:var(--input);border:1px solid var(--border);border-radius:14px;padding:10px 12px;box-shadow:var(--shadow)}
-    .input input{flex:1;border:none;outline:none;background:transparent;color:var(--text);font-size:16px}
-    .btn{border:none;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer;transition:.16s transform ease, .16s filter ease; display:inline-flex; align-items:center; gap:8px}
-    .btn:active{transform:translateY(1px)}
-    .btn-primary{background:var(--accent);color:white}
-    .btn-ghost{background:transparent;color:var(--text);border:1px solid var(--border)}
-    .btn-chip{background:var(--chip);color:var(--text);border:1px solid var(--border);font-size:13px}
-    main{padding:20px 0 80px}
-    .results{display:grid;grid-template-columns:repeat(1,minmax(0,1fr)); gap:12px;margin-top:14px}
-    @media(min-width:640px){.results{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    @media(min-width:980px){.results{grid-template-columns:repeat(3,minmax(0,1fr))}}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px 14px;box-shadow:var(--shadow)}
-    .installer{font-weight:800;font-size:16px}
-    .address{color:var(--muted);font-size:14px;margin-top:6px;line-height:1.4}
-    .rate{margin-top:10px; font-size:13px; color:var(--text)}
-    .count{color:var(--muted);font-size:13px;margin-top:10px}
-    .pill{display:inline-block; padding:4px 8px; border-radius:999px; background:var(--chip); border:1px solid var(--border); font-size:12px; color:var(--muted)}
-    .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-    .footer-note{color:var(--muted);font-size:12px;text-align:center;margin-top:22px}
+    :root { --border:#e8e8e8; --muted:#666; --accent:#0d6efd; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, Helvetica, sans-serif; margin: 24px; }
+    .wrap { max-width: 1100px; margin: 0 auto; }
+    h1 { font-size: 22px; margin-bottom: 8px; }
+    .hint { color: #555; font-size: 14px; margin-bottom: 18px; }
+    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    input[type="text"] { flex: 1 1 520px; padding: 10px 12px; border-radius: 10px; border: 1px solid #bbb; }
+    button { padding: 10px 14px; border-radius: 10px; border: 0; background:var(--accent); color:white; cursor:pointer; }
+    .grid { display:grid; grid-template-columns: 1fr 420px; gap: 18px; align-items:start; }
+    .card { border:1px solid var(--border); border-radius: 14px; padding: 14px; background:#fff; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+    th { background: #f6f7fb; border-top-left-radius: 10px; border-top-right-radius: 10px; }
+    .small { font-size:12px; color:var(--muted); }
+    iframe#gmaps { width:100%; height:420px; border:1px solid var(--border); border-radius:12px; }
+    .preview { white-space:pre-line; border:1px dashed var(--border); border-radius:10px; padding:8px 10px; margin-top:8px; background:#fafafa; }
+    .answer { background:#f8fbff; border:1px solid #dfeaff; color:#173c7a; border-radius:10px; padding:10px 12px; margin-top:10px; }
   </style>
 </head>
 <body>
-  <header>
-    <div class="container">
-      <div class="title">Buscador de instaladores</div>
-      <div class="subtitle">Fuente de datos actualizada (la que nos pegaste). Pulsa <strong>Enter</strong> para buscar. Botón de modo nocturno incluido.</div>
-      <div class="toolbar">
-        <div class="input" role="search">
-          <input id="q" placeholder="Buscar por instalador, dirección o provincia (ej. Valencia, Alicante, Madrid)…" aria-label="Buscar" />
-          <button id="btnSearch" class="btn btn-primary" title="Buscar (Enter)">Buscar</button>
-        </div>
-        <button id="btnNight" class="btn btn-ghost" title="Cambiar modo">🌙 Modo nocturno</button>
-        <button id="btnClear" class="btn btn-chip" title="Limpiar">Limpiar</button>
-      </div>
-      <div class="row" style="margin-top:10px;gap:6px">
-        <span class="pill">Enter también ejecuta la búsqueda</span>
-        <span class="pill">Escribe la <b>provincia</b> para ver coincidencias por provincia</span>
+<div class="wrap">
+  <h1>Selector de instaladores por dirección</h1>
+  <div class="hint">
+    Escribe una <b>dirección</b> (o ciudad/provincia). Normalizamos abreviaturas (<i>cl → Calle, av → Avenida</i>) y colocamos el <b>código postal</b> antes de la localidad.
+    Verás instaladores <b>activos</b> ordenados por <b>Calificación</b>.
+  </div>
+  <div class="row">
+    <input id="addr" type="text" placeholder="Ej.: cl luis suarez 28, 33010 oviedo" />
+    <button id="go">Buscar instaladores</button>
+  </div>
+  <div id="formatted" class="preview small"></div>
+  <div id="answer" class="answer small" style="display:none;"></div>
+
+  <div class="grid" style="margin-top:16px;">
+    <div>
+      <div class="card">
+        <div class="small">Resultado ordenado por <b>Calificación</b> (desc). Solo instaladores <b>Activos</b>.</div>
+        <table id="res">
+          <thead><tr><th>Instalador</th><th>Zona</th><th>Calificación</th></tr></thead>
+          <tbody></tbody>
+        </table>
       </div>
     </div>
-  </header>
+    <div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div><b>Mapa</b></div>
+          <div class="small">Se muestra la dirección formateada</div>
+        </div>
+        <iframe id="gmaps" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+    </div>
+  </div>
 
-  <main class="container">
-    <div id="summary" class="count"></div>
-    <div id="results" class="results" aria-live="polite"></div>
-    <div class="footer-note">Ordenado por puntuación (RATE) y nombre. Coincidencias de provincia reconocen variantes como "València/Valencia".</div>
-  </main>
+  <div class="small" style="margin-top:8px;">
+    Fuente: tabla embebida (pégala aquí abajo). Si prefieres Google Sheets + Maps JS (marcador preciso), te paso esa variante.
+  </div>
+</div>
 
-  <!--
-    👉👉 Pega aquí ABAJO la fuente exacta que nos pasaste (TSV con cabecera INSTALLER\tAddress\tRATE).
-    **No hace falta editar el JS**. El script lee este bloque de texto directamente.
-  -->
-  <script type="text/plain" id="dataset">
+<!-- 🔽🔽 Pega aquí tu tabla (TSV con cabeceras INSTALLER\tAddress\tRATE). No toques el JS. -->
+<script type="text/plain" id="dataset">
 INSTALLER	Address	RATE
-<!-- Pega aquí TODO el listado tal cual. Bórrame a mí (esta línea) y deja solo los datos. -->
-  </script>
+<!-- Pega aquí TODO el listado tal cual. Borra esta línea de comentario y deja solo los datos. -->
+</script>
 
-  <script>
-    // Lista de provincias españolas (con acentos y variantes frecuentes)
-    const PROVINCES = [
-      "Álava","Albacete","Alicante","Alacant","Almería","Asturias","Ávila","Badajoz","Barcelona",
-      "Bizkaia","Vizcaya","Burgos","Cáceres","Cádiz","Cantabria","Castellón","Castelló","Ciudad Real",
-      "Córdoba","A Coruña","Coruña","Cuenca","Gipuzkoa","Guipúzcoa","Girona","Gerona","Granada","Guadalajara",
-      "Huelva","Huesca","Illes Balears","Baleares","Jaén","La Rioja","Las Palmas","León","Lleida","Lérida",
-      "Lugo","Madrid","Málaga","Mallorca","Menorca","Ourense","Orense","Palencia","Pontevedra","Salamanca",
-      "Santa Cruz de Tenerife","Segovia","Sevilla","Soria","Tarragona","Teruel","Toledo","Valencia","València",
-      "Valladolid","Zamora","Zaragoza","Ceuta","Melilla"
-    ].map(p=>p.toLowerCase());
-
-    const $q = document.getElementById('q');
-    const $results = document.getElementById('results');
-    const $summary = document.getElementById('summary');
-    const $btnSearch = document.getElementById('btnSearch');
-    const $btnNight = document.getElementById('btnNight');
-    const $btnClear = document.getElementById('btnClear');
-
-    // NIGHT MODE toggle
-    const root = document.documentElement; // <html>
-    function setNight(on){
-      root.classList.toggle('dark', !!on);
-      root.classList.toggle('light', !on);
-      localStorage.setItem('night', on ? '1' : '');
-      $btnNight.textContent = on ? '☀️ Modo claro' : '🌙 Modo nocturno';
-    }
-    setNight(localStorage.getItem('night')==='1');
-    $btnNight.addEventListener('click', ()=> setNight(!root.classList.contains('dark')));
-
-    function parseTSV(text){
-      const lines = text.trim().split(/\r?\n/).filter(Boolean);
-      if(!lines.length) return [];
-      // tolerate commas inside addresses; separator is tab
-      const rows = lines.map(l => l.split(/\t+/));
-      // detect header
-      const hasHeader = rows[0].length>=3 && /install|address|rate/i.test(rows[0].join(' '));
-      const start = hasHeader ? 1 : 0;
-      const out = [];
-      for(let i=start;i<rows.length;i++){
-        const cols = rows[i];
-        if(cols.length<3) continue;
-        const [installer,address,rate] = [cols[0].trim(), cols[1].trim(), parseFloat(cols[2])||0];
-        if(installer && address) out.push({installer, address, rate});
-      }
-      return out;
-    }
-
-    function loadData(){
-      const raw = document.getElementById('dataset').textContent; // from <script type=text/plain>
-      return parseTSV(raw);
-    }
-
-    const DATA = loadData();
-
-    function findMatches(q){
-      if(!q) return DATA;
-      q = q.trim().toLowerCase();
-      const isProvinceQuery = PROVINCES.includes(q);
-      return DATA.filter(row => {
-        const name = row.installer.toLowerCase();
-        const addr = row.address.toLowerCase();
-        if(isProvinceQuery){
-          // Provincia exacta: contiene la palabra provincia como token o tras una coma
-          return addr.includes(q);
-        }
-        // Búsqueda general: nombre instalador, dirección o posible provincia parcial
-        return name.includes(q) || addr.includes(q);
-      });
-    }
-
-    function render(list, q){
-      // ordenar por rate desc, luego instalador asc
-      const rows = [...list].sort((a,b)=> (b.rate-a.rate) || a.installer.localeCompare(b.installer));
-      $results.innerHTML = rows.map(r => `
-        <article class="card">
-          <div class="installer">${escapeHtml(r.installer)}</div>
-          <div class="address">${highlight(escapeHtml(r.address), q)}</div>
-          <div class="rate">⭐ ${r.rate.toFixed(1)}</div>
-        </article>
-      `).join('');
-      const count = rows.length;
-      const extra = q ? ` para "${escapeHtml(q)}"` : '';
-      $summary.innerHTML = `${count} resultado${count!==1?'s':''}${extra}`;
-    }
-
-    function highlight(text, q){
-      if(!q) return text;
-      try{
-        const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'ig');
-        return text.replace(re, '<mark>$1</mark>');
-      }catch(e){return text}
-    }
-    function escapeHtml(s){
-      return s.replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
-    }
-
-    function doSearch(){
-      const q = $q.value.trim();
-      const hits = findMatches(q);
-      render(hits, q);
-    }
-
-    // Eventos: botón, Enter, limpiar
-    $btnSearch.addEventListener('click', doSearch);
-    $q.addEventListener('keydown', (e)=>{
-      if(e.key==='Enter'){ e.preventDefault(); doSearch(); }
-    });
-    $btnClear.addEventListener('click', ()=>{ $q.value=''; doSearch(); $q.focus(); });
-
-    // Render inicial
-    render(DATA, '');
-  </script>
-</body>
-</html>
+<script>
+  /* ================== PARSER de la tabla pegada ================== */
+  function parseTSV(text){
+    const lines = String(text||"")
+      .tri
