@@ -40,11 +40,11 @@
   <div class="hint">
     Type an <b>address</b>, <b>province</b> or <b>autonomous community</b>. Street abbreviations are normalized
     (<i>cl → Calle, av → Avenida</i>) and the <b>postal code</b> is placed before the locality. Results show
-    <b>all installers that operate in the selected province</b>, <b>sorted by Rate</b> (highest first).
+    <b>all installers operating in the selected province</b>, <b>sorted by Rate</b> (highest first).
   </div>
 
   <div class="row">
-    <input id="addr" type="text" placeholder="Examples: '46011 Valencia' · 'Valencia' · 'Comunidad Valenciana' · '33010 Oviedo'"/>
+    <input id="addr" type="text" placeholder="Examples: 'Valencia' · '46011 Valencia' · 'Comunidad Valenciana' · 'Madrid'"/>
     <button id="go">Search installers</button>
     <button id="darkbtn" title="Toggle dark mode">Dark mode</button>
   </div>
@@ -55,7 +55,7 @@
   <div class="grid" style="margin-top:16px;">
     <div>
       <div class="card">
-        <div class="small">Sorted by <b>Rate</b> (desc). Only <b>Active</b> installers. One row per installer (best rate inside the province).</div>
+        <div class="small">Sorted by <b>Rate</b> (desc). One row per installer (best rate within the province).</div>
         <table id="res">
           <thead><tr><th>Installer</th><th>Province</th><th>Rate</th></tr></thead>
           <tbody></tbody>
@@ -81,12 +81,8 @@
 </div>
 
 <script>
-/* =============== Fallback data (will be replaced by your TSV) =============== */
-const DATA = [
-  { Instalador:"Bainga", Zona:"Valencia", Activo:"Sí", Calificación:5, Provincia:"Valencia" },
-  { Instalador:"Insvert", Zona:"Alicante", Activo:"Sí", Calificación:5, Provincia:"Alicante" },
-  { Instalador:"Vettes Solar", Zona:"Madrid", Activo:"Sí", Calificación:5, Provincia:"Madrid" },
-];
+/* ========== Minimal seed (will be replaced by your TSV) ========== */
+const DATA = []; // se rellena desde #tsv-data
 
 /* ========== Address normalizer (ES) ========== */
 const STREET_ABBR = [
@@ -236,68 +232,57 @@ function detectCommunity(text){
   return "";
 }
 function extractProvinceFromAddress(addr){
-  const byName = detectProvince(addr);
-  if (byName) return byName;
-  const cp = extractZip(addr);
+  const s = String(addr||"");
+  // Try by name
+  const pByName = detectProvince(s);
+  if (pByName) return pByName;
+  // Try by postal code
+  const cp = extractZip(s);
   if (cp){ const p = CP_TO_PROV[cp.slice(0,2)]; if (p) return p; }
   return "";
 }
 
-/* ================== Helpers ================== */
-function toNum(x){ const n = parseFloat(String(x).replace(",", ".")); return isNaN(n) ? 0 : n; }
-function activeOnly(rows){ return rows.filter(r => String(r.Activo||"").toLowerCase().match(/^(si|sí|true|yes)$/)); }
-function sortByRate(rows){
-  return rows.slice().sort((a,b)=>{
-    const d = toNum(b.Calificación) - toNum(a.Calificación);
-    if (Math.abs(d) > 1e-9) return d;
-    return String(a.Instalador).localeCompare(String(b.Instalador));
-  });
-}
-
-/* === NEW: robust province alias lookup for address matching === */
 function provinceAliases(name){
   const n = norm(name);
   const p = PROVINCES.find(p => norm(p.name) === n || p.aliases.some(a => norm(a) === n));
-  return p ? p.aliases.map(norm).concat([norm(p.name)]) : [n];
+  return p ? p.aliases.map(a => norm(a)).concat([norm(p.name)]) : [n];
 }
 
-/* === Aggregate: one row per installer in the selected province (max rate within the province). 
-      Now also matches by province name ALIASES found inside each address, even if r.Provincia is missing. === */
+/* Core: collect ALL installers that have ANY address in the selected province.
+   It scans the address text itself (robust), not only a pre-filled field. */
 function installersInProvince(rows, provinceName){
-  const provN = norm(provinceName);
-  const aliases = new Set(provinceAliases(provinceName));
-  const inProv = rows.filter(r => {
-    const rProv = norm(r.Provincia||"");
-    const inByField = rProv && (rProv === provN || aliases.has(rProv));
-    const inByText = (r.Zona||r.Address||"") && [...aliases].some(a => norm(r.Zona||r.Address).includes(a));
-    return inByField || inByText;
-  });
-  const agg = new Map();
-  for (const r of inProv){
-    const key = r.Instalador;
-    const rate = toNum(r.Calificación);
-    if (!agg.has(key) || rate > toNum(agg.get(key).Calificación)){
-      agg.set(key, { Instalador:key, Provincia:provinceName, Calificación:rate });
+  const aliases = new Set(provinceAliases(provinceName)); // e.g., "valencia","valència"
+  const agg = new Map(); // key: installer → best rate
+  for (const r of rows){
+    const addrText = norm(r.Address || r.Zona || "");
+    const provField = norm(r.Provincia || "");
+    const hitByField = provField && (aliases.has(provField));
+    const hitByText  = addrText && [...aliases].some(a => addrText.includes(a));
+    if (hitByField || hitByText){
+      const k = r.Instalador;
+      const rate = Number(r.Calificación ?? r.Rate ?? 0);
+      if (!agg.has(k) || rate > Number(agg.get(k).Calificación)) {
+        agg.set(k, { Instalador:k, Provincia:provinceName, Calificación:rate });
+      }
     }
   }
-  return sortByRate(Array.from(agg.values()));
+  return Array.from(agg.values()).sort((a,b)=> b.Calificación - a.Calificación || a.Instalador.localeCompare(b.Instalador));
 }
 
-/* === Aggregate for communities (covers all its provinces) — with alias text fallback === */
 function installersInCommunity(rows, communityKey){
-  const provs = (COMMUNITY_TO_PROVINCES[communityKey]||[]);
-  let union = [];
-  for (const p of provs){
-    union = union.concat(installersInProvince(rows, p));
-  }
-  // dedupe by installer keeping best rate
+  const provs = COMMUNITY_TO_PROVINCES[communityKey] || [];
   const agg = new Map();
-  for (const r of union){
-    const k=r.Instalador, rt=toNum(r.Calificación);
-    if (!agg.has(k) || rt > toNum(agg.get(k).Calificación)) agg.set(k, r);
+  for (const p of provs){
+    for (const row of installersInProvince(rows, p)){
+      const k=row.Instalador, rt=row.Calificación;
+      if (!agg.has(k) || rt > agg.get(k).Calificación) agg.set(k, row);
+    }
   }
-  return sortByRate(Array.from(agg.values()));
+  return Array.from(agg.values()).sort((a,b)=> b.Calificación - a.Calificación || a.Instalador.localeCompare(b.Instalador));
 }
+
+function toNum(x){ const n = parseFloat(String(x).replace(",", ".")); return isNaN(n) ? 0 : n; }
+function activeOnly(rows){ return rows.filter(r => String(r.Activo||"Sí").toLowerCase().match(/^(si|sí|true|yes)$/)); }
 
 function renderTable(rows){
   const tb = document.querySelector("#res tbody");
@@ -306,7 +291,7 @@ function renderTable(rows){
     const tr=document.createElement("tr");
     const td=document.createElement("td");
     td.colSpan=3;
-    td.textContent="No matches. Type a province (e.g., Valencia, Alicante, Madrid, Sevilla) or a community (Andalucía, Galicia…).";
+    td.textContent="No matches. Type a province (e.g., Valencia, Alicante, Madrid) or a community (Andalucía, Galicia…).";
     tr.appendChild(td); tb.appendChild(tr); return;
   }
   for(const r of rows){
@@ -319,7 +304,7 @@ function renderTable(rows){
   }
 }
 
-/* ================== Search, explanation & map ================== */
+/* Search, explanation & map */
 function buildFormattedAddress(raw){
   const street = normalizeStreet(raw);
   const cp = extractZip(raw);
@@ -335,7 +320,6 @@ function updateMapFromFormatted(formatted){
   const q = encodeURIComponent(String(formatted||"").replace(/\n/g, ", "));
   iframe.src = `https://www.google.com/maps?q=${q}&output=embed`;
 }
-
 function buildAnswerText(addrRaw, formatted, province, community, rows){
   const box = document.getElementById("answer");
   const names = rows.map(r=>r.Instalador);
@@ -349,21 +333,13 @@ function buildAnswerText(addrRaw, formatted, province, community, rows){
   } else if (province || community){
     msg = `Interpreted address:\n${formatted}\n\nDetected ${province ? "province" : "community"}: ${province || community}.\n\nNo active installers found in the embedded table for that area.`;
   } else {
-    msg = `Interpreted address:\n${formatted}\n\nCouldn't detect a province/community. Try “Valencia”, “Comunidad Valenciana”, “Madrid”… or add a postal code.`;
+    msg = `Interpreted address:\n${formatted}\n\nCouldn't detect a province/community. Try “Valencia”, “Alicante”, “Madrid”… or add a postal code.`;
   }
   box.textContent = msg;
   box.style.display = "block";
 }
 
-function annotateProvincesInData(){
-  for (const r of DATA){
-    if (!r.Provincia || !r.Provincia.trim()){
-      r.Provincia = extractProvinceFromAddress(r.Zona || r.Address || "");
-    }
-  }
-}
-
-/* === Main search === */
+/* Main search */
 function search(){
   const raw = document.getElementById("addr").value || "";
   const { formatted, line2 } = buildFormattedAddress(raw);
@@ -383,12 +359,12 @@ function search(){
     // No scope detected: show overall best per installer (any province)
     const best = new Map();
     for (const r of base){
-      const k = r.Instalador, rt = toNum(r.Calificación);
+      const k = r.Instalador, rt = toNum(r.Calificación ?? r.Rate ?? 0);
       if (!best.has(k) || rt > toNum(best.get(k).Calificación)){
         best.set(k, { Instalador:k, Provincia:r.Provincia || "(unknown)", Calificación:rt });
       }
     }
-    ordered = sortByRate(Array.from(best.values()));
+    ordered = Array.from(best.values()).sort((a,b)=> b.Calificación - a.Calificación || a.Instalador.localeCompare(b.Instalador));
   }
 
   renderTable(ordered);
@@ -411,19 +387,20 @@ document.getElementById("darkbtn").addEventListener("click", ()=> applyDark(!doc
 applyDark(localStorage.getItem("dark")==="1");
 
 /* Initial state */
-annotateProvincesInData();
 document.getElementById("formatted").textContent = "—";
 document.getElementById("answer").style.display = "none";
-renderTable(sortByRate(installersInProvince(activeOnly(DATA), DATA[0]?.Provincia || "Valencia")));
 updateMapFromFormatted("Spain");
 </script>
 
 <!-- ======= PASTE HERE YOUR FULL TABLE (TSV with headers: INSTALLER \t Address \t RATE) ======= -->
 <script type="text/plain" id="tsv-data">
-<!-- Paste below your FULL table (no quotes). Columns: INSTALLER[TAB]Address[TAB]RATE -->
+<!-- Replace this comment with your FULL table:
+INSTALLER<TAB>Address<TAB>RATE
+(then all rows you pasted: BAINGA<TAB>C. Luxemburgo, 28, 03130 Alicante...<TAB>5
+...) -->
 </script>
 
-<!-- ===== TSV parser → replaces DATA with your table ===== -->
+<!-- ===== TSV parser → loads your table into DATA ===== -->
 <script>
 (function(){
   const tsvEl = document.getElementById('tsv-data');
@@ -431,70 +408,63 @@ updateMapFromFormatted("Spain");
   const raw = (tsvEl.textContent || tsvEl.innerText || "").trim();
   if (!raw) return;
 
-  // Detect delimiter (tab preferred; fallback: 2+ spaces)
-  const firstLine = raw.split(/\r?\n/)[0] || "";
-  const delimiter = firstLine.includes('\t') ? '\t' : null;
+  const hasTab = raw.includes('\t');
+  const lines = raw.split(/\r?\n/).filter(l => l.trim().length);
+  if (!lines.length) return;
 
-  function parseTSV(text){
-    const lines = text.split(/\r?\n/).filter(l => l.trim().length);
-    if (!lines.length) return [];
-    let headerParts;
-    if (delimiter) headerParts = lines.shift().split('\t').map(h => h.trim().toLowerCase());
-    else headerParts = lines.shift().trim().split(/\s{2,}/).map(h => h.trim().toLowerCase()); // fallback
+  // Headers
+  const header = lines.shift();
+  const headers = hasTab ? header.split('\t') : header.trim().split(/\s{2,}/);
+  const iInst = headers.findIndex(h => /^installer/i.test(h));
+  const iAddr = headers.findIndex(h => /^address/i.test(h));
+  const iRate = headers.findIndex(h => /^rate/i.test(h));
 
-    const iInst = headerParts.findIndex(h => /^installer/.test(h));
-    const iAddr = headerParts.findIndex(h => /^address/.test(h));
-    const iRate = headerParts.findIndex(h => /^rate/.test(h));
+  // Parse rows
+  const out = [];
+  for (const line of lines){
+    let cols = hasTab ? line.split('\t') : line.trim().split(/\s{2,}/);
+    if (!cols.length) continue;
 
-    const out = [];
-    for (const line of lines){
-      let cols;
-      if (delimiter) cols = line.split('\t');
-      else cols = line.trim().split(/\s{2,}/); // fallback if user pasted with multi-spaces
-
-      // If still not 3 cols, try last-number heuristic
-      if (cols.length < 3){
-        const m = line.match(/(.*)\s+(\d+(?:[.,]\d+)?)\s*$/);
-        if (m){
-          const left = m[1].trim();
-          const rateStr = m[2];
-          if (left.includes('\t')) cols = left.split('\t').concat([rateStr]);
-          else {
-            // try to split left into installer and address at the first 2+ spaces
-            const mm = left.match(/^(.+?)\s{2,}(.+)$/);
-            if (mm) cols = [mm[1], mm[2], rateStr];
-          }
+    // Heuristic if last token is a number (RATE)
+    if ((hasTab && cols.length < 3) || (!hasTab && cols.length < 3)){
+      const m = line.match(/(.*)\s+(\d+(?:[.,]\d+)?)\s*$/);
+      if (m){
+        const left = m[1].trim();
+        const rateStr = m[2];
+        if (hasTab && left.includes('\t')) cols = left.split('\t').concat([rateStr]);
+        else {
+          const mm = left.match(/^(.+?)\s{2,}(.+)$/);
+          if (mm) cols = [mm[1], mm[2], rateStr];
         }
       }
-
-      const inst = (cols[iInst >= 0 ? iInst : 0]||"").trim();
-      const addr = (cols[iAddr >= 0 ? iAddr : 1]||"").trim();
-      const rate = parseFloat(String(cols[iRate >= 0 ? iRate : cols.length-1]||"0").replace(",", "."));
-      if (inst && addr){
-        out.push({
-          Instalador: inst,
-          Zona: addr,
-          Activo: "Sí",
-          Calificación: isNaN(rate) ? 0 : rate,
-          Provincia: extractProvinceFromAddress(addr)
-        });
-      }
     }
-    return out;
+
+    const inst = (cols[iInst >= 0 ? iInst : 0]||"").trim();
+    const addr = (cols[iAddr >= 0 ? iAddr : 1]||"").trim();
+    const rate = parseFloat(String(cols[iRate >= 0 ? iRate : cols.length-1]||"0").replace(",", "."));
+
+    if (inst && addr){
+      out.push({
+        Instalador: inst,
+        Address: addr,
+        Zona: addr,
+        Activo: "Sí",
+        Calificación: isNaN(rate) ? 0 : rate,
+        Provincia: extractProvinceFromAddress(addr)
+      });
+    }
   }
 
-  const rows = parseTSV(raw);
-  if (Array.isArray(rows) && rows.length){
+  if (out.length){
     DATA.length = 0;
-    for (const r of rows) DATA.push(r);
-    annotateProvincesInData();
+    for (const r of out) DATA.push(r);
+    // Default render: if an input exists, search; else show the most common province
     const current = document.getElementById("addr").value.trim();
     if (current){ search(); } else {
-      // default render: take the most frequent province in your data to show something meaningful
       const freq = {};
       for (const r of DATA){ const p=r.Provincia||""; if(p) freq[p]=(freq[p]||0)+1; }
       const topProv = Object.entries(freq).sort((a,b)=>b[1]-a[1])[0]?.[0] || "Valencia";
-      renderTable(sortByRate(installersInProvince(activeOnly(DATA), topProv)));
+      renderTable(installersInProvince(DATA, topProv));
     }
   }
 })();
