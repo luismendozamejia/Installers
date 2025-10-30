@@ -1,303 +1,423 @@
-import React, { useMemo, useState, useEffect } from "react";
-
-/** === DATA: Installers with regions + rating (replaces previous table) === */
-const INSTALLERS = [
-  { name: "BAINGA", regions: ["Comunitat Valenciana"], rating: 5 },
-  {
-    name: "BSSPAIN",
-    regions: [
-      "Andalucía",
-      "Castilla-La Mancha",
-      "Castilla y León",
-      "Comunidad de Madrid",
-      "Comunitat Valenciana",
-      "Región de Murcia",
-    ],
-    rating: 2,
-  },
-  { name: "ECO AMPER SL", regions: ["Comunitat Valenciana", "Región de Murcia"], rating: 5 },
-  { name: "Ecofutur", regions: ["Comunitat Valenciana"], rating: 3 },
-  { name: "EEGA Suministros Energéticos", regions: ["Galicia"], rating: 4 },
-  { name: "Era Renovables", regions: ["Andalucía", "Aragón"], rating: 5 },
-  { name: "FUERZA&HONOR SL", regions: ["Illes Balears", "Andalucía"], rating: 4 },
-  {
-    name: "Grupo Ecosar",
-    regions: ["Asturias","Cantabria","País Vasco","Galicia","Castilla y León","Comunidad de Madrid"],
-    rating: 4,
-  },
-  {
-    name: "GRUPO MQ LA MANCHA S.L.U",
-    regions: ["Castilla-La Mancha","Comunidad de Madrid","Andalucía","Aragón"],
-    rating: 1,
-  },
-  { name: "JOVITEL SL", regions: ["Andalucía"], rating: 4 },
-  {
-    name: "KAYLON ENERGIAS RENOVABLES S.L.",
-    regions: [
-      "Cataluña","Comunidad de Madrid","Castilla-La Mancha","Castilla y León",
-      "Aragón","Navarra","País Vasco","Cantabria","Extremadura",
-    ],
-    rating: 4,
-  },
-  {
-    name: "PROYECTOS ENERGÉTICOS INERGYA, S.L.",
-    regions: ["Región de Murcia", "Comunitat Valenciana"],
-    rating: 3,
-  },
-];
-
-/** Utility to draw stars from rating 0-5 */
-const Stars = ({ value = 0 }) => {
-  const full = "★".repeat(value);
-  const empty = "☆".repeat(5 - value);
-  return <span aria-label={`${value} out of 5`}>{full}{empty}</span>;
-};
-
-/**
- * InstallerDirectoryOverlay
- * - English UI
- * - Dark mode toggle
- * - Search triggers on Enter
- * - Renders ABOVE the map by @luisme (use absolute overlay + high z-index)
- */
-export default function InstallerDirectoryOverlay() {
-  const [dark, setDark] = useState(false);
-  const [query, setQuery] = useState("");
-  const [committedQuery, setCommittedQuery] = useState("");
-
-  // Optional: if your page already toggles a .dark class on <html>, keep this,
-  // otherwise remove the effect and style locally with the `dark` state below.
-  useEffect(() => {
-    const root = document.documentElement;
-    if (dark) root.classList.add("dark");
-    else root.classList.remove("dark");
-  }, [dark]);
-
-  const filtered = useMemo(() => {
-    const q = committedQuery.trim().toLowerCase();
-    if (!q) return INSTALLERS;
-    return INSTALLERS.filter((i) => {
-      const inName = i.name.toLowerCase().includes(q);
-      const inRegions = i.regions.join(", ").toLowerCase().includes(q);
-      return inName || inRegions;
-    });
-  }, [committedQuery]);
-
-  const handleSearch = () => setCommittedQuery(query);
-
-  const handleKeyDown = (e) => {
-    if (e.key === "Enter") {
-      handleSearch(); // ← triggers search on Enter
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Selector de instaladores por dirección</title>
+<style>
+  /* ====== Tema (claro/oscuro) con variables ====== */
+  :root{
+    --bg:#ffffff;
+    --text:#111;
+    --border:#e8e8e8;
+    --muted:#666;
+    --accent:#0d6efd;
+    --card:#ffffff;
+    --table-head:#f6f7fb;
+    --preview:#fafafa;
+    --answer-bg:#f8fbff;
+    --answer-border:#dfeaff;
+    --iframe-border:var(--border);
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0f1216;
+      --text:#e8e8e8;
+      --border:#262b32;
+      --muted:#a2a7af;
+      --accent:#5aa2ff;
+      --card:#151a20;
+      --table-head:#1b2128;
+      --preview:#151a20;
+      --answer-bg:#121925;
+      --answer-border:#24324a;
+      --iframe-border:var(--border);
     }
-  };
+  }
+  [data-theme="dark"]{
+    --bg:#0f1216;
+    --text:#e8e8e8;
+    --border:#262b32;
+    --muted:#a2a7af;
+    --accent:#5aa2ff;
+    --card:#151a20;
+    --table-head:#1b2128;
+    --preview:#151a20;
+    --answer-bg:#121925;
+    --answer-border:#24324a;
+    --iframe-border:var(--border);
+  }
 
-  return (
-    <div
-      // Overlay ABOVE the existing map (created by Luis Daniel Mendoza @luisme)
-      // If your map container has an id (e.g., #mapLuis), this overlay will sit on top.
-      style={{
-        position: "absolute",
-        top: 16,
-        left: 16,
-        right: "auto",
-        zIndex: 9999, // ensure it's above map controls
-        maxWidth: 720,
-        pointerEvents: "auto",
-        fontFamily: "system-ui, Segoe UI, Roboto, Arial, sans-serif",
-      }}
-    >
-      <div
-        style={{
-          background: dark ? "#0f172a" : "white",
-          color: dark ? "#e2e8f0" : "#0f172a",
-          border: `1px solid ${dark ? "#1f2937" : "#e5e7eb"}`,
-          borderRadius: 16,
-          boxShadow: dark
-            ? "0 8px 24px rgba(0,0,0,0.6)"
-            : "0 8px 24px rgba(0,0,0,0.12)",
-          overflow: "hidden",
-        }}
-      >
-        {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: 16,
-            borderBottom: `1px solid ${dark ? "#1f2937" : "#eef2f7"}`,
-          }}
-        >
-          <div style={{ fontSize: 18, fontWeight: 700 }}>
-            Solar Installers (Spain)
-          </div>
+  /* ====== Estilos base ====== */
+  * { box-sizing: border-box; }
+  html, body { height:100%; }
+  body {
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, Helvetica, sans-serif;
+    margin: 24px;
+    background: var(--bg);
+    color: var(--text);
+    transition: background .2s ease, color .2s ease, border-color .2s ease;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 22px; margin-bottom: 8px; }
+  .hint { color: var(--muted); font-size: 14px; margin-bottom: 18px; }
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  input[type="text"] {
+    flex: 1 1 520px; padding: 10px 12px; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--bg); color: var(--text);
+    outline: none;
+  }
+  input[type="text"]::placeholder{ color: var(--muted); }
+  button {
+    padding: 10px 14px; border-radius: 10px; border: 0;
+    background: var(--accent); color:white; cursor:pointer;
+  }
+  .ghost {
+    background: transparent; color: var(--text); border:1px solid var(--border);
+  }
+  .grid { display:grid; grid-template-columns: 1fr 420px; gap: 18px; align-items:start; }
+  .card { border:1px solid var(--border); border-radius: 14px; padding: 14px; background:var(--card); }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th, td { padding: 10px; border-bottom: 1px solid var(--border); text-align: left; }
+  th { background: var(--table-head); border-top-left-radius: 10px; border-top-right-radius: 10px; }
+  .small { font-size:12px; color:var(--muted); }
+  iframe#gmaps { width:100%; height:420px; border:1px solid var(--iframe-border); border-radius:12px; background:#0000; }
+  .preview {
+    white-space:pre-line; border:1px dashed var(--border); border-radius:10px;
+    padding:8px 10px; margin-top:8px; background:var(--preview); color: var(--text);
+  }
+  .answer {
+    background:var(--answer-bg); border:1px solid var(--answer-border);
+    color:#cfe1ff; /* mantiene contraste en dark; el texto real lo ponemos inline para consistencia */
+    border-radius:10px; padding:10px 12px; margin-top:10px;
+  }
+  .toolbar { display:flex; gap:8px; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .left, .right { display:flex; gap:8px; align-items:center; }
+  .footer { margin-top:16px; color:var(--muted); font-size:12px; text-align:center; }
+  .kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; border:1px solid var(--border); border-radius:6px; padding:1px 6px; color:var(--text); }
+  @media (max-width: 900px){
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toolbar">
+    <h1>Selector de instaladores por dirección</h1>
+    <div class="right">
+      <button id="themeToggle" class="ghost" aria-label="Alternar modo nocturno" title="Alternar modo nocturno">🌙 Modo nocturno</button>
+    </div>
+  </div>
 
-          {/* Dark mode toggle */}
-          <label
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 8,
-              cursor: "pointer",
-              userSelect: "none",
-            }}
-            title="Toggle dark mode"
-          >
-            <span style={{ fontSize: 12, opacity: 0.8 }}>
-              {dark ? "Dark" : "Light"} mode
-            </span>
-            <input
-              type="checkbox"
-              checked={dark}
-              onChange={(e) => setDark(e.target.checked)}
-              style={{ display: "none" }}
-            />
-            <span
-              aria-hidden
-              style={{
-                width: 44,
-                height: 24,
-                borderRadius: 999,
-                background: dark ? "#334155" : "#d1d5db",
-                position: "relative",
-                transition: "background 120ms ease",
-                boxShadow: "inset 0 0 0 1px rgba(0,0,0,0.08)",
-              }}
-              onClick={() => setDark((v) => !v)}
-            >
-              <span
-                style={{
-                  position: "absolute",
-                  top: 2,
-                  left: dark ? 22 : 2,
-                  width: 20,
-                  height: 20,
-                  borderRadius: "50%",
-                  background: dark ? "#e5e7eb" : "white",
-                  transition: "left 120ms ease",
-                  boxShadow: "0 1px 2px rgba(0,0,0,0.25)",
-                }}
-              />
-            </span>
-          </label>
-        </div>
+  <div class="hint">
+    Escribe una <b>dirección</b> (o ciudad/provincia). Normalizamos abreviaturas (<i>cl → Calle, av → Avenida</i>) y
+    colocamos el <b>código postal</b> antes de la localidad. Verás instaladores <b>activos</b> ordenados por <b>Calificación</b>.
+  </div>
 
-        {/* Controls */}
-        <div style={{ padding: 16, display: "flex", gap: 8 }}>
-          <input
-            type="text"
-            placeholder="Search by installer or region…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyDown} // ← Enter triggers search
-            style={{
-              flex: 1,
-              height: 40,
-              padding: "0 12px",
-              borderRadius: 10,
-              border: `1px solid ${dark ? "#334155" : "#e5e7eb"}`,
-              background: dark ? "#111827" : "white",
-              color: dark ? "#e5e7eb" : "#111827",
-              outline: "none",
-            }}
-          />
-          <button
-            onClick={handleSearch}
-            style={{
-              height: 40,
-              padding: "0 14px",
-              borderRadius: 10,
-              border: "none",
-              cursor: "pointer",
-              background: "#2563eb",
-              color: "white",
-              fontWeight: 600,
-            }}
-          >
-            Search
-          </button>
-        </div>
+  <div class="row">
+    <input id="addr" type="text" placeholder="Ej.: cl luis suarez 28, 33010 oviedo (pulsa Enter)" aria-label="Dirección para buscar instaladores" />
+    <button id="go">Buscar instaladores</button>
+  </div>
+  <div class="small" style="margin-top:-4px;">Sugerencia: pulsa <span class="kbd">Enter</span> para iniciar la búsqueda.</div>
 
-        {/* Table */}
-        <div style={{ maxHeight: 420, overflow: "auto" }}>
-          <table
-            style={{
-              width: "100%",
-              borderCollapse: "separate",
-              borderSpacing: 0,
-              fontSize: 14,
-            }}
-          >
-            <thead
-              style={{
-                position: "sticky",
-                top: 0,
-                background: dark ? "#0f172a" : "#f8fafc",
-                color: dark ? "#e5e7eb" : "#0f172a",
-                zIndex: 1,
-              }}
-            >
-              <tr>
-                <th style={thStyle(dark)}>Installer</th>
-                <th style={thStyle(dark)}>Regions</th>
-                <th style={thStyle(dark)}>Rating</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((i, idx) => (
-                <tr key={`${i.name}-${idx}`} style={{ borderTop: `1px solid ${dark ? "#1f2937" : "#eef2f7"}`}}>
-                  <td style={tdStyle(dark)}>{i.name}</td>
-                  <td style={tdStyle(dark)}>{i.regions.join(", ")}</td>
-                  <td style={{ ...tdStyle(dark), whiteSpace: "nowrap" }}>
-                    <Stars value={i.rating} />
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan={3} style={{ ...tdStyle(dark), textAlign: "center", opacity: 0.7 }}>
-                    No results found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+  <div id="formatted" class="preview small"></div>
+  <div id="answer" class="answer small" style="display:none; color: #173c7a;"></div>
 
-        {/* Footer */}
-        <div
-          style={{
-            padding: 12,
-            fontSize: 12,
-            opacity: 0.7,
-            textAlign: "right",
-            borderTop: `1px solid ${dark ? "#1f2937" : "#eef2f7"}`,
-          }}
-        >
-          Data: curated list • Overlay above map by Luis Daniel Mendoza (@luisme)
-        </div>
+  <div class="grid" style="margin-top:16px;">
+    <div>
+      <div class="card">
+        <div class="small">Resultado ordenado por <b>Calificación</b> (desc). Solo instaladores <b>Activos</b>.</div>
+        <table id="res">
+          <thead><tr><th>Instalador</th><th>Zona</th><th>Calificación</th></tr></thead>
+          <tbody></tbody>
+        </table>
       </div>
     </div>
-  );
+
+    <div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div><b>Mapa</b></div>
+          <div class="small">Se muestra la dirección formateada</div>
+        </div>
+        <iframe id="gmaps" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Mapa de la dirección"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <div class="small" style="margin-top:8px;">
+    Fuente: tabla embebida. ¿Lo quieres con Google Sheets + Maps JS (marcador preciso)? Puedo pasarte esa variante.
+  </div>
+
+  <div class="footer">
+    created by <b>Luis Daniel Mendoza Mejia</b> <span class="small">@luisme</span>
+  </div>
+</div>
+
+<script>
+/* ================== DATOS (edita si necesitas) ================== */
+const DATA = [
+  { Instalador:"Solsystem", Zona:"Barcelona (incidencias) y resto de Cataluña (según caso)", Activo:"No (pausado)", Calificación:3 },
+  { Instalador:"Sunsolutions (María)", Zona:"Barcelona", Activo:"Sí", Calificación:4 },
+  { Instalador:"Harrak", Zona:"Barcelona", Activo:"Sí", Calificación:3 },
+  { Instalador:"Sergio (ACP / ACP Plus)", Zona:"Gijón + ~250 km alrededor", Activo:"Sí", Calificación:5 },
+  { Instalador:"Kaylon", Zona:"Madrid y alrededores", Activo:"Sí", Calificación:4 },
+  { Instalador:"Soleon", Zona:"Madrid (entre Murcia y Madrid)", Activo:"Sí", Calificación:1 },
+  { Instalador:"Inergya", Zona:"Madrid y alrededores", Activo:"Sí", Calificación:3 },
+  { Instalador:"Vettes", Zona:"Madrid y alrededores", Activo:"Sí", Calificación:5 },
+  { Instalador:"José Manuel Bugidos", Zona:"Madrid", Activo:"Sí", Calificación:3 },
+  { Instalador:"Insvert (Javier)", Zona:"Alicante y Valencia", Activo:"Sí", Calificación:4 },
+  { Instalador:"Alrola", Zona:"Valencia", Activo:"Sí", Calificación:2 },
+  { Instalador:"Bainga", Zona:"Valencia", Activo:"Sí", Calificación:4 },
+  { Instalador:"LEUK", Zona:"Sevilla (Andalucía)", Activo:"Sí", Calificación:0 },
+  { Instalador:"Teleplaca", Zona:"Sevilla (Andalucía)", Activo:"Sí", Calificación:4 },
+  { Instalador:"ERA Renovables", Zona:"Sevilla (Andalucía)", Activo:"Sí", Calificación:4 },
+  { Instalador:"Vector Solar", Zona:"Granada", Activo:"Sí", Calificación:4 },
+  { Instalador:"Jovitel", Zona:"Almería y Málaga", Activo:"Sí", Calificación:4 },
+  { Instalador:"BSS", Zona:"Madrid", Activo:"Sí", Calificación:2 },
+  { Instalador:"Fuerza y Honor (F&H)", Zona:"Islas Baleares", Activo:"Sí", Calificación:3 },
+  { Instalador:"Soluciones Solares Ibéricas", Zona:"Islas Baleares", Activo:"Sí", Calificación:4 },
+  { Instalador:"Ecoamper", Zona:"(zona no indicada)", Activo:"Sí", Calificación:5 },
+  { Instalador:"Ecosar", Zona:"(zona no indicada)", Activo:"Sí", Calificación:4 },
+  { Instalador:"EEGA", Zona:"(zona no indicada)", Activo:"Sí", Calificación:2 },
+];
+
+/* ========== Normalizador de dirección (ES) ========== */
+const STREET_ABBR = [
+  { rx:/^(cl|c\/|c\.|cl\.|calle)\b/i, full:"Calle" },
+  { rx:/^(av|av\.|avda|avd|avenida)\b/i, full:"Avenida" },
+  { rx:/^(ps|pso|p\.º|pº|paseo)\b/i, full:"Paseo" },
+  { rx:/^(ctra|crta|carretera)\b/i, full:"Carretera" },
+  { rx:/^(pl|pl\.|plaza)\b/i, full:"Plaza" },
+  { rx:/^(cam|cno|camino)\b/i, full:"Camino" },
+  { rx:/^(rda|ronda|rnd)\b/i, full:"Ronda" },
+  { rx:/^(trv|trva|travesi?a)\b/i, full:"Travesía" },
+  { rx:/^(pje|ptja|pasaje)\b/i, full:"Pasaje" },
+  { rx:/^(urb|urbanizaci[oó]n)\b/i, full:"Urbanización" },
+  { rx:/^(pgno|pol[íi]gono|poligono)\b/i, full:"Polígono" }
+];
+
+function titleCase(str){
+  return str.replace(/\S+/g, w => w[0].toUpperCase() + w.slice(1).toLowerCase());
 }
 
-/** Small helpers for table styles */
-function thStyle(dark) {
-  return {
-    textAlign: "left",
-    padding: "10px 14px",
-    fontWeight: 700,
-    fontSize: 12,
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-    borderBottom: `1px solid ${dark ? "#1f2937" : "#eef2f7"}`,
-  };
+function normalizeStreet(raw){
+  let s = String(raw||"").trim().replace(/\s+/g, " ");
+  const firstLine = s.split(/[\n,]/)[0].trim();
+  let out = firstLine;
+  for (const rule of STREET_ABBR){
+    if (rule.rx.test(firstLine)){
+      out = firstLine.replace(rule.rx, rule.full);
+      break;
+    }
+  }
+  out = out.split(" ").map(tok=> (/^\d/.test(tok)? tok : titleCase(tok))).join(" ");
+  return out;
 }
-function tdStyle(dark) {
-  return {
-    padding: "12px 14px",
-    verticalAlign: "top",
-    color: dark ? "#e5e7eb" : "#111827",
-  };
+
+function extractZip(text){
+  const m = String(text||"").match(/\b(\d{5})\b/);
+  return m ? m[1] : "";
 }
+
+function extractLocality(text){
+  const a = String(text||"");
+  const cp = extractZip(a);
+  if (cp){
+    const idx = a.indexOf(cp);
+    if (idx>=0){
+      const tail = a.slice(idx + cp.length).replace(/[,|\n]/g," ").trim();
+      return tail.split(/\s+/).slice(0,3).join(" ").trim();
+    }
+  }
+  const parts = a.split(/[\n,]/).map(s=>s.trim()).filter(Boolean);
+  return parts.length>1 ? parts[parts.length-1] : "";
+}
+
+/* ====== Palabras clave por región para cruzar con "Zona" ====== */
+const REGION_KEYWORDS = {
+  "madrid": ["madrid","boadilla","villaviciosa","alcobendas","alcorcón","alcorcon","getafe","móstoles","mostoles","pozuelo"],
+  "barcelona": ["barcelona","sant boi","sant cugat","badalona","hospitalet","l'hospitalet"],
+  "valencia": ["valencia","valència","sagunto","torrent"],
+  "alicante": ["alicante","alacant","elche","elx","benidorm"],
+  "sevilla": ["sevilla","dos hermanas","camas","alcalá de guadaíra","alcala de guadaira"],
+  "granada": ["granada","motril","armilla"],
+  "malaga": ["málaga","malaga","marbella","fuengirola","vélez-málaga","velez malaga"],
+  "almeria": ["almería","almeria","roquetas","el ejido"],
+  "asturias": ["asturias","gijón","gijon","oviedo","aviles","avilés","norte","castilla y león","galicia"],
+  "baleares": ["baleares","mallorca","menorca","ibiza","illes balears","islas baleares","palma"],
+  "murcia": ["murcia","cartagena"]
+};
+
+function detectRegionsByText(text){
+  const a = String(text||"").toLowerCase();
+  const hits = new Set();
+  for(const tag in REGION_KEYWORDS){
+    if(REGION_KEYWORDS[tag].some(k=> a.includes(k))) hits.add(tag);
+  }
+  return Array.from(hits);
+}
+
+/* ================== Recomendador ================== */
+function toNum(x){ const n = parseFloat(String(x).replace(",", ".")); return isNaN(n) ? 0 : n; }
+function activeOnly(rows){ return rows.filter(r => String(r.Activo||"").toLowerCase().match(/^(si|sí|true|yes)$/)); }
+
+function matchInstallersByRegions(rows, regions){
+  if(!regions.length) return rows;
+  const words = [];
+  for(const r of regions){
+    if(r==="asturias") words.push("asturias","gijón","gijon","norte","castilla y león","galicia");
+    else if(r==="baleares") words.push("baleares","mallorca","ibiza","menorca","illes balears","islas baleares","palma");
+    else words.push(r);
+  }
+  let cands = rows.filter(r => words.some(w => String(r.Zona||"").toLowerCase().includes(w)));
+  if(!cands.length){
+    cands = rows.filter(r => String(r.Zona||"").toLowerCase().includes("alrededor"));
+  }
+  return cands;
+}
+
+function sortByRating(rows){
+  return rows.slice().sort((a,b)=>{
+    const d = toNum(b.Calificación) - toNum(a.Calificación);
+    if (Math.abs(d) > 1e-9) return d;
+    return String(a.Instalador).localeCompare(String(b.Instalador));
+  });
+}
+
+function renderTable(rows){
+  const tb = document.querySelector("#res tbody");
+  tb.innerHTML = "";
+  if(!rows.length){
+    const tr=document.createElement("tr");
+    const td=document.createElement("td");
+    td.colSpan=3; td.textContent="Sin coincidencias. Prueba con ciudad/provincia (p.ej. Madrid, Valencia, Sevilla, Mallorca).";
+    tr.appendChild(td); tb.appendChild(tr);
+    return;
+  }
+  for(const r of rows){
+    const tr=document.createElement("tr");
+    const td1=document.createElement("td"); td1.textContent=r.Instalador;
+    const td2=document.createElement("td"); td2.textContent=r.Zona;
+    const td3=document.createElement("td"); td3.textContent=(r.Calificación ?? 0);
+    tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3);
+    tb.appendChild(tr);
+  }
+}
+
+/* ================== Búsqueda, Explicación & Mapa ================== */
+function buildFormattedAddress(raw){
+  const street = normalizeStreet(raw);
+  const cp = extractZip(raw);
+  const loc = extractLocality(raw);
+
+  let line1 = street || "";
+  let line2 = (cp ? cp+" " : "") + (loc || "");
+  line2 = line2.trim();
+
+  const formatted = [line1, line2].filter(Boolean).join("\n");
+  return { formatted, line1, line2, cp, loc };
+}
+
+function updateMapFromFormatted(formatted){
+  const iframe = document.getElementById("gmaps");
+  const q = encodeURIComponent(formatted.replace(/\n/g, ", "));
+  iframe.src = `https://www.google.com/maps?q=${q}&output=embed`;
+}
+
+function buildAnswerText(addrRaw, formatted, regions, ordered){
+  const box = document.getElementById("answer");
+  const names = ordered.map(r=>r.Instalador).slice(0,8); // hasta 8 para no saturar
+  const regionTxt = regions.length ? regions.join(", ") : "—";
+
+  let msg = "";
+  if (!addrRaw.trim()){
+    msg = "No se ha indicado dirección. Te muestro los instaladores activos en general, ordenados por calificación.";
+  } else if (!regions.length && ordered.length){
+    msg = `Dirección interpretada como:\n${formatted}\n\nNo detecté una región específica en el texto, así que te muestro instaladores activos ordenados por calificación.`;
+  } else if (regions.length && ordered.length){
+    msg = `Dirección interpretada como:\n${formatted}\n\nRegión detectada: ${regionTxt}.\n\nInstaladores que actúan en la zona (ordenados por calificación): ${names.join(", ")}.`;
+  } else if (regions.length && !ordered.length){
+    msg = `Dirección interpretada como:\n${formatted}\n\nRegión detectada: ${regionTxt}.\n\nNo encontré instaladores activos que coincidan exactamente con esa zona. Prueba con la ciudad/provincia o revisa abreviaturas.`;
+  } else {
+    msg = `Dirección interpretada como:\n${formatted}\n\nNo encontré coincidencias. Prueba indicando la ciudad/provincia (p. ej., “33010 Oviedo” o “Madrid”).`;
+  }
+
+  box.textContent = msg;
+  box.style.display = "block";
+  // Ajuste de color del texto para ambos temas
+  box.style.color = getComputedStyle(document.documentElement).getPropertyValue('--text');
+}
+
+function search(){
+  const raw = document.getElementById("addr").value || "";
+  const { formatted, line2 } = buildFormattedAddress(raw);
+  document.getElementById("formatted").textContent = formatted || "—";
+
+  // Región por CP/localidad (línea 2) o por el texto completo
+  const regions = detectRegionsByText(line2 || raw);
+  const matches = matchInstallersByRegions(activeOnly(DATA), regions);
+  const ordered = sortByRating(matches);
+  renderTable(ordered);
+
+  // Respuesta textual explicativa
+  buildAnswerText(raw, formatted || raw, regions, ordered);
+
+  // Mapa
+  updateMapFromFormatted(formatted || raw || "España");
+}
+
+/* ================== UI: Enter para buscar & Tema ================== */
+const goBtn = document.getElementById("go");
+goBtn.addEventListener("click", search);
+
+const addrInput = document.getElementById("addr");
+addrInput.addEventListener("keydown", (e)=>{
+  if(e.key === "Enter"){
+    e.preventDefault();
+    search();
+  }
+});
+
+const themeToggle = document.getElementById("themeToggle");
+const root = document.documentElement;
+
+function applyTheme(theme){
+  if(theme === "dark"){
+    root.setAttribute("data-theme","dark");
+    themeToggle.textContent = "☀️ Modo claro";
+    themeToggle.setAttribute("aria-label","Alternar a modo claro");
+    themeToggle.title = "Alternar a modo claro";
+  } else {
+    root.removeAttribute("data-theme");
+    themeToggle.textContent = "🌙 Modo nocturno";
+    themeToggle.setAttribute("aria-label","Alternar a modo nocturno");
+    themeToggle.title = "Alternar a modo nocturno";
+  }
+}
+
+function getSystemPrefersDark(){
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+function initTheme(){
+  const saved = localStorage.getItem("theme-pref");
+  const theme = saved || (getSystemPrefersDark() ? "dark" : "light");
+  applyTheme(theme);
+}
+themeToggle.addEventListener("click", ()=>{
+  const isDark = root.getAttribute("data-theme")==="dark";
+  const next = isDark ? "light" : "dark";
+  applyTheme(next);
+  localStorage.setItem("theme-pref", next);
+});
+initTheme();
+
+/* ================== Primer render (vacío) ================== */
+document.getElementById("formatted").textContent = "—";
+document.getElementById("answer").style.display = "none";
+renderTable(sortByRating(activeOnly(DATA)));
+updateMapFromFormatted("España");
+</script>
+</body>
+</html>
